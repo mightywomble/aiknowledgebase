@@ -30,7 +30,7 @@
 
     <div class="flex h-screen bg-white">
         <!-- Sidebar -->
-        <aside class="w-72 bg-white border-r border-gray-200 flex flex-col shrink-0">
+        <aside class="w-80 bg-white border-r border-gray-200 flex flex-col shrink-0">
             <div class="h-16 flex items-center px-6 border-b border-gray-200">
                 <a href="{{ url_for('index') }}" class="flex items-center">
                     <svg class="h-8 w-8 text-indigo-600" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -50,42 +50,41 @@
                 </form>
             </div>
 
-            <nav id="kb-nav" class="flex-1 px-2 py-2 space-y-2 overflow-y-auto">
+            <nav id="kb-nav" class="flex-1 px-4 py-2 overflow-y-auto">
                 <div id="bulk-actions-bar" class="hidden sticky top-0 bg-white/80 backdrop-blur-sm z-10 p-2 border-b mb-2 rounded-md">
-                    <p class="text-sm font-semibold mb-2"><span id="selection-count">0</span> selected</p>
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="text-sm font-semibold"><span id="selection-count">0</span> selected</p>
+                        <label class="flex items-center text-sm">
+                            <input type="checkbox" id="select-all-checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                            <span class="ml-2 text-gray-600">Select All</span>
+                        </label>
+                    </div>
                     <div class="flex gap-2">
                         <button id="bulk-update-btn" class="flex-1 text-xs bg-blue-500 text-white px-2 py-1 rounded-md hover:bg-blue-600">Update</button>
                         <button id="bulk-delete-btn" class="flex-1 text-xs bg-red-500 text-white px-2 py-1 rounded-md hover:bg-red-600">Delete</button>
                     </div>
                 </div>
-
-                <div class="px-2">
-                    <label class="flex items-center text-sm">
-                        <input type="checkbox" id="select-all-checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                        <span class="ml-2 text-gray-600">Select All</span>
-                    </label>
-                </div>
-
+                
+                <div class="grid grid-cols-1 gap-3">
                 {% set current_category = '' %}
                 {% for article in articles %}
                     {% if sort_by == 'category' and article.category.name != current_category %}
                         {% set current_category = article.category.name %}
-                        <h3 class="text-md font-bold text-indigo-600 px-2 pt-4">{{ current_category }}</h3>
+                        <h3 class="text-md font-bold text-gray-600 px-2 pt-4 col-span-1">{{ current_category }}</h3>
                     {% endif %}
-                    <li class="flex items-center justify-between text-sm text-gray-600 hover:bg-gray-100 rounded-lg group list-none">
-                        <label class="flex-grow flex items-center p-2 cursor-pointer">
-                            <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 article-checkbox" data-id="{{ article.id }}">
-                            <a href="#" class="ml-3 hover:text-gray-900 article-link" data-id="{{ article.id }}">{{ article.title }}</a>
-                        </label>
-                        <div class="flex items-center pr-2">
-                            <button class="edit-article-btn p-1 text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100" data-id="{{ article.id }}">
-                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg>
+                    <div class="p-3 rounded-lg shadow-sm relative group" style="background-color: {{ article.category.color }};">
+                        <div class="absolute top-2 right-2 flex items-center">
+                             <button class="edit-article-btn p-1 text-gray-500 hover:text-blue-700 opacity-0 group-hover:opacity-100 transition-opacity" data-id="{{ article.id }}">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" /></svg>
                             </button>
+                            <input type="checkbox" class="h-4 w-4 rounded border-gray-400 text-indigo-600 focus:ring-indigo-500 article-checkbox ml-1" data-id="{{ article.id }}">
                         </div>
-                    </li>
+                        <a href="#" class="block font-semibold text-gray-800 hover:text-black article-link" data-id="{{ article.id }}">{{ article.title }}</a>
+                    </div>
                 {% else %}
                     <p class="px-4 text-sm text-gray-500">No articles found.</p>
                 {% endfor %}
+                </div>
             </nav>
         </aside>
 
@@ -168,6 +167,7 @@
                 <div>
                     <label for="bulk-tags" class="block text-sm font-medium text-gray-700">Tags to Add</label>
                     <input type="text" id="bulk-tags" class="mt-1 block w-full rounded-md border-gray-300">
+                    <div id="bulk-tags-container" class="mt-2 flex flex-wrap gap-2"></div>
                 </div>
             </div>
             <div class="bg-gray-50 px-6 py-4 flex justify-end space-x-3 rounded-b-xl border-t">
@@ -178,6 +178,7 @@
     </div>
 
     <script>
+        const allTags = {{ all_tags|tojson }};
         const $ = (selector) => document.querySelector(selector);
         const $$ = (selector) => document.querySelectorAll(selector);
 
@@ -186,7 +187,10 @@
         $('#kb-nav').addEventListener('click', handleSidebarClick);
         $('#select-all-checkbox').addEventListener('change', handleSelectAll);
         $('#bulk-delete-btn').addEventListener('click', () => handleBulkAction('delete'));
-        $('#bulk-update-btn').addEventListener('click', () => openModal('bulk-update-modal'));
+        $('#bulk-update-btn').addEventListener('click', () => {
+            renderTagButtons('bulk-tags-container', 'bulk-tags');
+            openModal('bulk-update-modal');
+        });
         $('#confirm-bulk-update-btn').addEventListener('click', () => handleBulkAction('update'));
 
         // --- Main Functions ---
@@ -273,9 +277,14 @@
                 <div><label class="block text-sm font-medium">Category</label><input type="text" id="edit-category" value="${escapeHTML(article.category)}" class="mt-1 w-full rounded-md border-gray-300"></div>
                 <div><label class="block text-sm font-medium">Notes</label><textarea id="edit-notes" rows="4" class="mt-1 w-full rounded-md border-gray-300">${escapeHTML(article.notes)}</textarea></div>
                 <div><label class="block text-sm font-medium">References</label><textarea id="edit-references" rows="2" class="mt-1 w-full rounded-md border-gray-300">${escapeHTML(article.references)}</textarea></div>
-                <div><label class="block text-sm font-medium">Tags</label><input type="text" id="edit-tags" value="${escapeHTML(article.tags)}" class="mt-1 w-full rounded-md border-gray-300"></div>
+                <div>
+                    <label class="block text-sm font-medium">Tags</label>
+                    <input type="text" id="edit-tags" value="${escapeHTML(article.tags)}" class="mt-1 w-full rounded-md border-gray-300">
+                    <div id="edit-tags-container" class="mt-2 flex flex-wrap gap-2"></div>
+                </div>
             `;
             $('#edit-modal-content').innerHTML = content;
+            renderTagButtons('edit-tags-container', 'edit-tags');
             $('#confirm-edit-btn').onclick = handleConfirmEdit;
             openModal('edit-modal');
         }
@@ -299,20 +308,34 @@
                 <div><label class="block text-sm font-medium">Category</label><input type="text" id="new-category" class="mt-1 w-full rounded-md border-gray-300"></div>
                 <div><label class="block text-sm font-medium">Notes</label><textarea id="new-notes" rows="4" class="mt-1 w-full rounded-md border-gray-300"></textarea></div>
                 <div><label class="block text-sm font-medium">References</label><textarea id="new-references" rows="2" class="mt-1 w-full rounded-md border-gray-300"></textarea></div>
-                <div><label class="block text-sm font-medium">Tags</label><input type="text" id="new-tags" class="mt-1 w-full rounded-md border-gray-300"></div>
+                <div>
+                    <label class="block text-sm font-medium">Tags</label>
+                    <input type="text" id="new-tags" class="mt-1 w-full rounded-md border-gray-300">
+                    <div id="new-tags-container" class="mt-2 flex flex-wrap gap-2"></div>
+                </div>
             `;
             $('#synthesis-modal-content').innerHTML = content;
+            renderTagButtons('new-tags-container', 'new-tags');
             $('#confirm-synthesis-btn').onclick = handleConfirmSynthesis;
             openModal('synthesis-modal');
         }
 
         async function handleConfirmSynthesis() {
+            const textsToSynthesize = Array.from($$('#synthesis-section input:checked')).map(checkbox => {
+                return checkbox.dataset.content;
+            });
+
             const payload = {
                 title: $('#new-title').value, category: $('#new-category').value,
                 notes: $('#new-notes').value, references: $('#new-references').value, tags: $('#new-tags').value,
-                texts: Array.from($$('#synthesis-section input:checked')).map(cb => cb.dataset.content)
+                texts: textsToSynthesize
             };
             if (!payload.title || !payload.category) return alert('Title and Category are required.');
+            
+            const btn = $('#confirm-synthesis-btn');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+
             await fetch('/synthesize', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
             });
@@ -360,7 +383,6 @@
             $('#modal-backdrop').classList.remove('hidden');
             modal.classList.remove('hidden');
             
-            // Force a reflow before adding the active class to ensure the transition plays
             void modal.offsetWidth; 
 
             modal.classList.add('modal-enter-active');
@@ -375,21 +397,51 @@
             modal.classList.remove('modal-enter-active');
 
             setTimeout(() => {
+                // Clear inputs only on synthesis modal close
+                if (id === 'synthesis-modal') {
+                    ['new-title', 'new-category', 'new-notes', 'new-references', 'new-tags'].forEach(inputId => {
+                        const el = $(`#${inputId}`);
+                        if (el) el.value = '';
+                    });
+                    const btn = $('#confirm-synthesis-btn');
+                    btn.disabled = false;
+                    btn.textContent = 'Create Article';
+                }
+
                 $('#modal-backdrop').classList.add('hidden');
                 modal.classList.add('hidden');
                 modal.classList.remove('modal-leave-active');
-                modal.classList.add('modal-enter'); // Reset for next open
-            }, 200); // Match CSS transition duration
+                modal.classList.add('modal-enter');
+            }, 200);
+        }
+        
+        function renderTagButtons(containerId, inputId) {
+            const container = $(`#${containerId}`);
+            container.innerHTML = allTags.map(tag => `<button class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded-full" data-tag="${escapeHTML(tag)}">${escapeHTML(tag)}</button>`).join('');
+            container.addEventListener('click', e => {
+                if (e.target.tagName === 'BUTTON') {
+                    const tag = e.target.dataset.tag;
+                    const input = $(`#${inputId}`);
+                    const currentTags = new Set(input.value.split(',').map(t => t.trim()).filter(Boolean));
+                    currentTags.add(tag);
+                    input.value = Array.from(currentTags).join(', ');
+                }
+            });
         }
         
         function createResultCard(id, title, content) {
             return `<div class="bg-white/80 p-5 rounded-lg border"><label for="check-${id}" class="flex items-start cursor-pointer"><input type="checkbox" id="check-${id}" class="mt-1 h-5 w-5" data-content="${escapeHTML(content)}"><div class="ml-4"><h4 class="font-bold text-lg text-indigo-700">${title}</h4><div class="mt-2 text-gray-600 prose-styles">${renderMarkdown(content)}</div></div></label></div>`;
         }
         function createGoogleResultsCard(items) {
-            const googleItems = items.map((item, i) => `<div class="border-t pt-3 mt-3 first:mt-0 first:border-t-0"><label for="check-google-${i}" class="flex items-start cursor-pointer"><input type="checkbox" id="check-google-${i}" class="mt-1 h-5 w-5" data-content="${escapeHTML(`Title: ${item.title}\nSnippet: ${item.snippet}`)}"><div class="ml-4"><a href="${item.link}" target="_blank" class="hover:underline font-semibold">${item.title}</a><p class="text-sm mt-1">${item.snippet}</p></div></label></div>`).join('');
+            const googleItems = items.map((item, i) => {
+                const content = `Title: ${item.title}\nSnippet: ${item.snippet}\nLink: ${item.link}`;
+                return `<div class="border-t pt-3 mt-3 first:mt-0 first:border-t-0"><label for="check-google-${i}" class="flex items-start cursor-pointer"><input type="checkbox" id="check-google-${i}" class="mt-1 h-5 w-5" data-content="${escapeHTML(content)}"><div class="ml-4"><a href="${item.link}" target="_blank" class="hover:underline font-semibold">${item.title}</a><p class="text-sm mt-1">${item.snippet}</p></div></label></div>`
+            }).join('');
             return `<div class="bg-white/80 p-5 rounded-lg border"><h4 class="font-bold text-lg text-blue-700">Google Search</h4><div class="mt-2">${googleItems}</div></div>`;
         }
-        function escapeHTML(str) { return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+        function escapeHTML(str) { 
+            return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+        }
         function renderMarkdown(text) {
             let html = escapeHTML(text || '');
             return html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');

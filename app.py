@@ -1,5 +1,6 @@
 import os
 import json
+import random
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import desc, or_
@@ -36,6 +37,7 @@ config = load_config()
 class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), unique=True, nullable=False)
+    color = db.Column(db.String(20), nullable=False, default='#E5E7EB') # New color field
     articles = db.relationship('Article', backref='category', lazy=True, cascade="all, delete-orphan")
 
 class Article(db.Model):
@@ -104,9 +106,11 @@ def index():
         query = query.order_by(Category.name, Article.title)
     
     articles = query.all()
-    all_categories = Category.query.order_by(Category.name).all()
     
-    return render_template('index.html', articles=articles, all_categories=all_categories, search_term=search_term, sort_by=sort_by)
+    all_tags_query = db.session.query(Article.tags).filter(Article.tags.isnot(None)).distinct().all()
+    all_tags = sorted(list(set(tag.strip() for tags_tuple in all_tags_query for tag in tags_tuple[0].split(',') if tag.strip())))
+
+    return render_template('index.html', articles=articles, all_tags=all_tags, search_term=search_term, sort_by=sort_by)
 
 @app.route('/settings', methods=['GET', 'POST'])
 def settings_page():
@@ -133,19 +137,23 @@ def get_article(article_id):
         'category': article.category.name
     })
 
+def get_or_create_category(name):
+    """Gets a category by name or creates it with a random color if it doesn't exist."""
+    category = Category.query.filter_by(name=name).first()
+    if not category:
+        colors = ['#FEE2E2', '#FEF3C7', '#D1FAE5', '#DBEAFE', '#E0E7FF', '#F3E8FF']
+        category = Category(name=name, color=random.choice(colors))
+        db.session.add(category)
+    return category
+
 @app.route('/edit/article/<int:article_id>', methods=['POST'])
 def edit_article(article_id):
     """Handles editing a single article."""
     article = Article.query.get_or_404(article_id)
     data = request.get_json()
     
-    category = Category.query.filter_by(name=data['category']).first()
-    if not category:
-        category = Category(name=data['category'])
-        db.session.add(category)
-
     article.title = data['title']
-    article.category = category
+    article.category = get_or_create_category(data['category'])
     article.notes = data['notes']
     article.references = data['references']
     article.tags = data['tags']
@@ -173,14 +181,10 @@ def synthesize_and_save():
     synthesized_content = query_gemini(synthesis_prompt)
     if synthesized_content.startswith("Error:"): return jsonify({"error": synthesized_content}), 500
 
-    category = Category.query.filter_by(name=data['category']).first()
-    if not category:
-        category = Category(name=data['category'])
-        db.session.add(category)
-    
     new_article = Article(
         title=data['title'], content=synthesized_content, notes=data.get('notes'),
-        references=data.get('references'), tags=data.get('tags'), category=category
+        references=data.get('references'), tags=data.get('tags'), 
+        category=get_or_create_category(data['category'])
     )
     db.session.add(new_article)
     db.session.commit()
