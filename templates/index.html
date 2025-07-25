@@ -8,9 +8,9 @@
     <style>
         /* Custom scrollbar for a more integrated look */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f5f9; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        ::-webkit-scrollbar-track { background: #f8fafc; }
+        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
         .prose-styles { color: #334155; }
         .prose-styles h1, .prose-styles h2, .prose-styles h3 { color: #1e293b; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.25em; margin-top: 1em; margin-bottom: 0.5em;}
         .prose-styles p { margin-top: 0.5em; margin-bottom: 0.5em; line-height: 1.6; }
@@ -26,6 +26,12 @@
         .modal-enter { opacity: 0; transform: scale(0.95); }
         .modal-enter-active { opacity: 1; transform: scale(1); transition: all 300ms; }
         .modal-leave-active { opacity: 0; transform: scale(0.95); transition: all 300ms; }
+        .glass-pane {
+            background: rgba(255, 255, 255, 0.6);
+            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+        }
     </style>
 </head>
 <body class="bg-gray-100 font-sans antialiased">
@@ -72,8 +78,8 @@
         </aside>
 
         <!-- Main Content -->
-        <main class="flex-1 flex flex-col overflow-hidden">
-            <header class="h-16 flex items-center justify-center px-8 border-b border-gray-200 bg-white">
+        <main class="flex-1 flex flex-col overflow-hidden bg-gray-50">
+            <header class="h-16 flex items-center justify-center px-8 border-b border-gray-200 bg-white z-10">
                 <form id="ask-form" class="w-full max-w-2xl">
                     <div class="relative">
                         <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd" /></svg>
@@ -81,11 +87,11 @@
                     </div>
                 </form>
             </header>
-            <div id="results-area" class="flex-1 overflow-y-auto p-8 bg-gray-50">
-                <div class="text-center text-gray-500">
-                    <h2 class="text-2xl font-bold">Welcome to your Knowledge Base</h2>
+            <div id="results-area" class="flex-1 flex flex-col gap-6 p-6 overflow-y-auto">
+                <div class="text-center text-gray-500 p-8 glass-pane rounded-xl flex-1 flex flex-col justify-center">
+                    <h2 class="text-2xl font-bold text-gray-700">Welcome to your Knowledge Base</h2>
                     <p class="mt-2">Ask a question above to search Google, Gemini, and ChatGPT.</p>
-                    <p>Then, select the results to create a new KB article.</p>
+                    <p>Select results and click "Create Article" to begin.</p>
                 </div>
             </div>
         </main>
@@ -110,21 +116,33 @@
 
     <!-- Synthesis Input Modal -->
     <div id="synthesis-modal" class="fixed inset-0 flex items-center justify-center p-4 hidden z-50 modal-enter">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg">
-            <div class="p-6">
-                <h3 class="text-lg font-medium leading-6 text-gray-900">Create New KB Article</h3>
-                <div class="mt-4 space-y-4">
-                    <div>
-                        <label for="new-title" class="block text-sm font-medium text-gray-700">Article Title</label>
-                        <input type="text" id="new-title" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                    </div>
-                    <div>
-                        <label for="new-category" class="block text-sm font-medium text-gray-700">Category</label>
-                        <input type="text" id="new-category" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="e.g., Databases, Python">
-                    </div>
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div class="p-6 border-b">
+                <h3 class="text-xl font-medium leading-6 text-gray-900">Create New KB Article</h3>
+            </div>
+            <div class="p-6 space-y-4 overflow-y-auto">
+                <div>
+                    <label for="new-title" class="block text-sm font-medium text-gray-700">Article Title</label>
+                    <input type="text" id="new-title" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label for="new-category" class="block text-sm font-medium text-gray-700">Category</label>
+                    <input type="text" id="new-category" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="e.g., Databases, Python">
+                </div>
+                <div>
+                    <label for="new-notes" class="block text-sm font-medium text-gray-700">Notes (Markdown supported)</label>
+                    <textarea id="new-notes" rows="6" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Add your notes here..."></textarea>
+                </div>
+                <div>
+                    <label for="new-references" class="block text-sm font-medium text-gray-700">References (one URL per line)</label>
+                    <textarea id="new-references" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="https://example.com"></textarea>
+                </div>
+                <div>
+                    <label for="new-tags" class="block text-sm font-medium text-gray-700">Tags (comma-separated)</label>
+                    <input type="text" id="new-tags" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="python, database, api">
                 </div>
             </div>
-            <div class="bg-gray-50 px-6 py-4 flex justify-end space-x-3 rounded-b-xl">
+            <div class="bg-gray-50 px-6 py-4 flex justify-end space-x-3 rounded-b-xl border-t">
                 <button type="button" onclick="closeSynthesisModal()" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Cancel</button>
                 <button type="button" id="confirm-synthesis-btn" class="inline-flex justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">Create Article</button>
             </div>
@@ -163,21 +181,17 @@
         askForm.addEventListener('submit', handleAskSubmit);
         document.getElementById('confirm-synthesis-btn').addEventListener('click', handleSynthesis);
         
-        // Use event delegation for article links and delete buttons
         kbNav.addEventListener('click', (e) => {
             const articleLink = e.target.closest('.article-link');
             const deleteBtn = e.target.closest('.delete-article-btn');
 
             if (articleLink) {
                 e.preventDefault();
-                const articleId = articleLink.dataset.id;
-                handleArticleClick(articleId);
+                handleArticleClick(articleLink.dataset.id);
             }
-
             if (deleteBtn) {
                 e.preventDefault();
-                const articleId = deleteBtn.dataset.id;
-                handleArticleDelete(articleId);
+                handleArticleDelete(deleteBtn.dataset.id);
             }
         });
 
@@ -189,9 +203,9 @@
             if (!question) return;
 
             resultsArea.innerHTML = `
-                <div class="text-center p-8">
+                <div class="text-center p-8 glass-pane rounded-xl flex-1 flex flex-col justify-center">
                     <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-                    <p class="mt-4 text-gray-500">Searching for answers...</p>
+                    <p class="mt-4 text-gray-600">Searching for answers...</p>
                 </div>`;
             
             try {
@@ -212,9 +226,9 @@
         function displayResults(results) {
             resultsArea.innerHTML = `
                 <div class="space-y-6" id="synthesis-section"></div>
-                <div class="mt-8 text-center">
+                <div class="mt-auto pt-4 text-center">
                     <button id="start-synthesis-btn" class="rounded-md bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-green-500">
-                        Create KB Article from Selected
+                        Create Article from Selected
                     </button>
                 </div>`;
             
@@ -243,25 +257,40 @@
         }
 
         async function handleSynthesis() {
-            const selectedCheckboxes = document.querySelectorAll('#synthesis-section input[type="checkbox"]:checked');
             const newTitle = document.getElementById('new-title').value.trim();
             const newCategory = document.getElementById('new-category').value.trim();
-
+            const newNotes = document.getElementById('new-notes').value.trim();
+            const newReferences = document.getElementById('new-references').value.trim();
+            const newTags = document.getElementById('new-tags').value.trim();
+            const selectedCheckboxes = document.querySelectorAll('#synthesis-section input[type="checkbox"]:checked');
+            
             if (!newTitle || !newCategory) {
                 alert('Please provide both a title and a category.');
                 return;
             }
-
+            
+            if (selectedCheckboxes.length === 0) {
+                 alert('Please select at least one search result to synthesize.');
+                 return;
+            }
             const textsToSynthesize = Array.from(selectedCheckboxes).map(cb => cb.dataset.content);
-            const btn = this;
+
+            const btn = document.getElementById('confirm-synthesis-btn');
             btn.disabled = true;
-            btn.textContent = 'Synthesizing...';
+            btn.textContent = 'Saving...';
 
             try {
                 const response = await fetch('/synthesize', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ title: newTitle, category: newCategory, texts: textsToSynthesize })
+                    body: JSON.stringify({ 
+                        title: newTitle, 
+                        category: newCategory, 
+                        notes: newNotes,
+                        references: newReferences,
+                        tags: newTags,
+                        texts: textsToSynthesize 
+                    })
                 });
                 const result = await response.json();
                 if (!response.ok || result.error) throw new Error(result.error || 'Synthesis failed.');
@@ -279,11 +308,9 @@
         async function handleArticleClick(articleId) {
             try {
                 const response = await fetch(`/get/article/${articleId}`);
-                if (!response.ok) {
-                    throw new Error('Article not found');
-                }
+                if (!response.ok) throw new Error('Article not found');
                 const article = await response.json();
-                showArticleModal(article.title, article.content);
+                showArticleModal(article);
             } catch (error) {
                 console.error('Error fetching article:', error);
                 alert('Could not load the article.');
@@ -293,15 +320,10 @@
         function handleArticleDelete(articleId) {
             showConfirmModal(async (confirmed) => {
                 if (!confirmed) return;
-                
                 try {
-                    const response = await fetch(`/delete/article/${articleId}`, {
-                        method: 'POST',
-                    });
+                    const response = await fetch(`/delete/article/${articleId}`, { method: 'POST' });
                     const result = await response.json();
-                    if (!response.ok || !result.success) {
-                        throw new Error(result.message || 'Failed to delete article.');
-                    }
+                    if (!response.ok || !result.success) throw new Error(result.message || 'Failed to delete article.');
                     location.reload();
                 } catch(error) {
                     console.error('Error deleting article:', error);
@@ -312,38 +334,15 @@
 
         // --- UI Card Creators ---
         function createResultCard(id, title, content) {
-            return `
-                <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
-                    <label for="check-${id}" class="flex items-start cursor-pointer">
-                        <input type="checkbox" id="check-${id}" class="mt-1 h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" data-content="${escapeHTML(content)}">
-                        <div class="ml-4">
-                            <h4 class="font-bold text-lg text-indigo-700">${title}</h4>
-                            <div class="mt-2 text-gray-600 prose-styles">${renderMarkdown(content)}</div>
-                        </div>
-                    </label>
-                </div>`;
+            return `<div class="bg-white/80 p-5 rounded-lg border border-gray-200/50 shadow-sm"><label for="check-${id}" class="flex items-start cursor-pointer"><input type="checkbox" id="check-${id}" class="mt-1 h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" data-content="${escapeHTML(content)}"><div class="ml-4"><h4 class="font-bold text-lg text-indigo-700">${title}</h4><div class="mt-2 text-gray-600 prose-styles">${renderMarkdown(content)}</div></div></label></div>`;
         }
 
         function createGoogleResultsCard(items) {
             const googleItems = items.map((item, index) => {
                 const content = `Title: ${item.title}\nSnippet: ${item.snippet}\nLink: ${item.link}`;
-                return `
-                <div class="border-t border-gray-200 pt-3 mt-3 first:mt-0 first:border-t-0 first:pt-0">
-                    <label for="check-google-${index}" class="flex items-start cursor-pointer">
-                        <input type="checkbox" id="check-google-${index}" class="mt-1 h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" data-content="${escapeHTML(content)}">
-                        <div class="ml-4">
-                            <a href="${item.link}" target="_blank" class="text-indigo-600 hover:underline font-semibold">${item.title}</a>
-                            <p class="text-gray-500 text-sm mt-1">${item.snippet}</p>
-                        </div>
-                    </label>
-                </div>`;
+                return `<div class="border-t border-gray-200/50 pt-3 mt-3 first:mt-0 first:border-t-0 first:pt-0"><label for="check-google-${index}" class="flex items-start cursor-pointer"><input type="checkbox" id="check-google-${index}" class="mt-1 h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" data-content="${escapeHTML(content)}"><div class="ml-4"><a href="${item.link}" target="_blank" class="text-indigo-600 hover:underline font-semibold">${item.title}</a><p class="text-gray-500 text-sm mt-1">${item.snippet}</p></div></label></div>`;
             }).join('');
-
-            return `
-                <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
-                    <h4 class="font-bold text-lg text-blue-700">Google Search Results</h4>
-                    <div class="mt-2 space-y-1">${googleItems}</div>
-                </div>`;
+            return `<div class="bg-white/80 p-5 rounded-lg border border-gray-200/50 shadow-sm"><h4 class="font-bold text-lg text-blue-700">Google Search Results</h4><div class="mt-2 space-y-1">${googleItems}</div></div>`;
         }
 
         // --- Modal Control ---
@@ -351,9 +350,24 @@
         const modalTitle = document.getElementById('modal-title');
         const modalContent = document.getElementById('modal-content');
         
-        function showArticleModal(title, content) {
-            modalTitle.textContent = title;
-            modalContent.innerHTML = renderMarkdown(content);
+        function showArticleModal(article) {
+            modalTitle.textContent = article.title;
+            
+            let contentHtml = `<h3>Synthesized Content</h3>${renderMarkdown(article.content)}`;
+            
+            if (article.notes) {
+                contentHtml += `<h3 class="mt-6">Notes</h3>${renderMarkdown(article.notes)}`;
+            }
+            if (article.references) {
+                const links = article.references.split('\n').map(link => `<li><a href="${escapeHTML(link)}" target="_blank">${escapeHTML(link)}</a></li>`).join('');
+                contentHtml += `<h3 class="mt-6">References</h3><ul>${links}</ul>`;
+            }
+            if (article.tags) {
+                const tags = article.tags.split(',').map(tag => `<span class="inline-block bg-indigo-100 text-indigo-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full">${escapeHTML(tag.trim())}</span>`).join('');
+                contentHtml += `<div class="mt-6"><h3>Tags</h3>${tags}</div>`;
+            }
+
+            modalContent.innerHTML = contentHtml;
             modalBackdrop.classList.remove('hidden');
             articleModal.classList.remove('hidden');
             articleModal.classList.add('modal-enter-active');
@@ -370,11 +384,10 @@
         }
 
         const synthesisModal = document.getElementById('synthesis-modal');
-
         function openSynthesisModal() {
             const selectedCheckboxes = document.querySelectorAll('#synthesis-section input[type="checkbox"]:checked');
             if (selectedCheckboxes.length === 0) {
-                alert('Please select at least one result to create an article.');
+                alert('Please select at least one result to create an article from.');
                 return;
             }
             modalBackdrop.classList.remove('hidden');
@@ -389,8 +402,7 @@
                 modalBackdrop.classList.add('hidden');
                 synthesisModal.classList.add('hidden');
                 synthesisModal.classList.remove('modal-enter-active', 'modal-leave-active');
-                document.getElementById('new-title').value = '';
-                document.getElementById('new-category').value = '';
+                ['new-title', 'new-category', 'new-notes', 'new-references', 'new-tags'].forEach(id => document.getElementById(id).value = '');
                 document.getElementById('confirm-synthesis-btn').disabled = false;
                 document.getElementById('confirm-synthesis-btn').textContent = 'Create Article';
             }, 300);
@@ -406,16 +418,8 @@
             confirmModal.classList.add('modal-enter-active');
             confirmModal.classList.remove('modal-enter');
 
-            const handleOk = () => {
-                callback(true);
-                closeConfirmModal();
-                cleanup();
-            };
-            const handleCancel = () => {
-                callback(false);
-                closeConfirmModal();
-                cleanup();
-            };
+            const handleOk = () => { callback(true); closeConfirmModal(); cleanup(); };
+            const handleCancel = () => { callback(false); closeConfirmModal(); cleanup(); };
             const cleanup = () => {
                 confirmOkBtn.removeEventListener('click', handleOk);
                 confirmCancelBtn.removeEventListener('click', handleCancel);
@@ -428,7 +432,6 @@
         function closeConfirmModal() {
             confirmModal.classList.add('modal-leave-active');
             setTimeout(() => {
-                // Keep backdrop if another modal is open
                 if (articleModal.classList.contains('hidden') && synthesisModal.classList.contains('hidden')) {
                     modalBackdrop.classList.add('hidden');
                 }
@@ -437,40 +440,21 @@
             }, 300);
         }
 
-
         // --- Utility Functions ---
         function escapeHTML(str) {
             const text = str || '';
-            return text.replace(/&/g, '&amp;')
-                       .replace(/</g, '&lt;')
-                       .replace(/>/g, '&gt;')
-                       .replace(/"/g, '&quot;')
-                       .replace(/'/g, '&#039;');
+            return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
         }
 
         function renderMarkdown(text) {
             if (!text) return '';
             let html = escapeHTML(text);
-            // Headers
-            html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
-            html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
-            html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
-            // Bold
-            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-            // Italic
-            html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
-            // Blockquotes
+            html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>').replace(/^## (.*$)/gim, '<h2>$1</h2>').replace(/^# (.*$)/gim, '<h1>$1</h1>');
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>');
             html = html.replace(/^> (.*$)/gim, '<blockquote>$1</blockquote>');
-            // Links
             html = html.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>');
-             // Lists
-            html = html.replace(/^\s*[\-\*] (.*)/gm, '<ul><li>$1</li></ul>');
-            html = html.replace(/<\/ul>\n<ul>/g, '');
-            // Code blocks
-            html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
-            // Inline code
-            html = html.replace(/`(.*?)`/g, '<code>$1</code>');
-            // Newlines
+            html = html.replace(/^\s*[\-\*] (.*)/gm, '<ul><li>$1</li></ul>').replace(/<\/ul>\n<ul>/g, '');
+            html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>').replace(/`(.*?)`/g, '<code>$1</code>');
             html = html.replace(/\n/g, '<br>').replace(/<br><(h[1-6]|ul|pre|blockquote)>/g, '<$1>').replace(/<\/(h[1-6]|ul|pre|blockquote)><br>/g, '</$1>');
             return html;
         }

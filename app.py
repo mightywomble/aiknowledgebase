@@ -54,6 +54,9 @@ class Article(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     content = db.Column(db.Text, nullable=False)
+    notes = db.Column(db.Text, nullable=True) # New field for notes
+    references = db.Column(db.Text, nullable=True) # New field for links
+    tags = db.Column(db.String(255), nullable=True) # New field for tags
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
 
     def __repr__(self):
@@ -145,7 +148,10 @@ def get_article(article_id):
     article = Article.query.get_or_404(article_id)
     return jsonify({
         'title': article.title,
-        'content': article.content
+        'content': article.content,
+        'notes': article.notes,
+        'references': article.references,
+        'tags': article.tags
     })
 
 @app.route('/ask', methods=['POST'])
@@ -168,10 +174,13 @@ def ask():
 
 @app.route('/synthesize', methods=['POST'])
 def synthesize_and_save():
-    """Takes selected text, synthesizes a new KB article, and saves it."""
+    """Takes selected text and new fields, synthesizes an article, and saves it."""
     data = request.get_json()
     title = data.get('title')
     category_name = data.get('category')
+    notes = data.get('notes')
+    references = data.get('references')
+    tags = data.get('tags')
     selected_texts = data.get('texts')
 
     if not all([title, category_name, selected_texts]):
@@ -198,7 +207,14 @@ def synthesize_and_save():
         category = Category(name=category_name)
         db.session.add(category)
     
-    new_article = Article(title=title, content=synthesized_content, category=category)
+    new_article = Article(
+        title=title, 
+        content=synthesized_content, 
+        notes=notes,
+        references=references,
+        tags=tags,
+        category=category
+    )
     db.session.add(new_article)
     db.session.commit()
 
