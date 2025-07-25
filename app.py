@@ -20,28 +20,24 @@ db = SQLAlchemy(app)
 CONFIG_FILE = 'config.json'
 
 def load_config():
-    """Loads API keys and settings from config.json."""
     if os.path.exists(CONFIG_FILE):
-        with open(CONFIG_FILE, 'r') as f:
-            return json.load(f)
+        with open(CONFIG_FILE, 'r') as f: return json.load(f)
     return {"GEMINI_API_KEY": "", "GOOGLE_API_KEY": "", "SEARCH_ENGINE_ID": "", "OPENAI_API_KEY": ""}
 
 def save_config(new_config):
-    """Saves the configuration dictionary to config.json."""
-    with open(CONFIG_FILE, 'w') as f:
-        json.dump(new_config, f, indent=4)
+    with open(CONFIG_FILE, 'w') as f: json.dump(new_config, f, indent=4)
 
 config = load_config()
 
-# --- DATABASE MODELS ---
+# --- DATABASE MODELS (RENAMED CATEGORY TO GROUP) ---
 
-class Category(db.Model):
+class Group(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     color = db.Column(db.String(20), nullable=False, default='#E5E7EB')
-    parent_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=True)
-    parent = db.relationship('Category', remote_side=[id], backref='children')
-    articles = db.relationship('Article', backref='category', lazy='dynamic', cascade="all, delete-orphan")
+    parent_id = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=True)
+    parent = db.relationship('Group', remote_side=[id], backref='children')
+    articles = db.relationship('Article', backref='group', lazy='dynamic', cascade="all, delete-orphan")
 
 class Article(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -50,7 +46,7 @@ class Article(db.Model):
     notes = db.Column(db.Text, nullable=True)
     references = db.Column(db.Text, nullable=True)
     tags = db.Column(db.String(255), nullable=True)
-    category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
+    group_id = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=False)
 
 # --- API HELPER FUNCTIONS ---
 
@@ -62,9 +58,7 @@ def query_gemini(prompt):
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-1.5-flash')
         return model.generate_content(prompt).text
-    except Exception as e: 
-        print(f"!!!!!! Gemini API Error !!!!!!\n{e}")
-        return f"Error: {e}"
+    except Exception as e: return f"Error: {e}"
 
 def query_google_search(query_text):
     api_key = config.get('GOOGLE_API_KEY')
@@ -92,28 +86,34 @@ def query_chatgpt(prompt):
 @app.route('/')
 def index():
     search_term = request.args.get('search', '')
-    sort_by = request.args.get('sort', 'category')
+    sort_by = request.args.get('sort', 'group')
+    filter_group_id = request.args.get('group', type=int)
+    filter_tag = request.args.get('tag', '')
     
-    query = Article.query.join(Category)
+    query = Article.query.join(Group)
+
     if search_term:
-        search_like = f"%{search_term}%"
-        query = query.filter(or_(Article.title.ilike(search_like), Article.tags.ilike(search_like)))
+        query = query.filter(or_(Article.title.ilike(f"%{search_term}%"), Article.tags.ilike(f"%{search_term}%")))
+    if filter_group_id:
+        query = query.filter(Article.group_id == filter_group_id)
+    if filter_tag:
+        query = query.filter(Article.tags.ilike(f"%{filter_tag}%"))
 
     if sort_by == 'title_asc': query = query.order_by(Article.title)
     elif sort_by == 'title_desc': query = query.order_by(desc(Article.title))
     elif sort_by == 'newest': query = query.order_by(desc(Article.id))
-    else: query = query.order_by(Category.name, Article.title)
+    else: query = query.order_by(Group.name, Article.title)
     
     articles = query.all()
     
     all_tags_query = db.session.query(Article.tags).filter(Article.tags.isnot(None)).distinct().all()
     all_tags = sorted(list(set(tag.strip() for tags_tuple in all_tags_query for tag in tags_tuple[0].split(',') if tag.strip())))
     
-    # --- FIX: Convert categories to a JSON-serializable format for the template ---
-    all_categories_query = Category.query.order_by(Category.name).all()
-    categories_for_js = [{'id': c.id, 'name': c.name, 'parent_id': c.parent_id} for c in all_categories_query]
+    all_groups = Group.query.order_by(Group.name).all()
+    groups_for_js = [{'id': g.id, 'name': g.name, 'parent_id': g.parent_id} for g in all_groups]
 
-    return render_template('index.html', articles=articles, all_tags=all_tags, categories=categories_for_js, search_term=search_term, sort_by=sort_by)
+    return render_template('index.html', articles=articles, all_tags=all_tags, all_groups=all_groups, groups_for_js=groups_for_js, 
+                             search_term=search_term, sort_by=sort_by, filter_group_id=filter_group_id, filter_tag=filter_tag)
 
 @app.route('/settings', methods=['GET', 'POST'])
 def settings_page():
@@ -129,29 +129,28 @@ def settings_page():
         config = new_config
         return redirect(url_for('settings_page'))
     
-    categories = Category.query.order_by(Category.name).all()
-    return render_template('settings.html', current_config=config, categories=categories)
+    groups = Group.query.order_by(Group.name).all()
+    return render_template('settings.html', current_config=config, groups=groups)
 
-@app.route('/category/add', methods=['POST'])
-def add_category():
+@app.route('/group/add', methods=['POST'])
+def add_group():
     name = request.form.get('name')
     parent_id = request.form.get('parent_id')
     if name:
         colors = ['#FEE2E2', '#FEF3C7', '#D1FAE5', '#DBEAFE', '#E0E7FF', '#F3E8FF']
-        new_category = Category(name=name, color=random.choice(colors))
+        new_group = Group(name=name, color=random.choice(colors))
         if parent_id and parent_id.isdigit():
-            new_category.parent_id = int(parent_id)
-        db.session.add(new_category)
+            new_group.parent_id = int(parent_id)
+        db.session.add(new_group)
         db.session.commit()
     return redirect(url_for('settings_page'))
 
-@app.route('/category/delete/<int:id>', methods=['POST'])
-def delete_category(id):
-    category = Category.query.get_or_404(id)
-    # Reassign children to the parent of the deleted category, or make them top-level
-    for child in category.children:
-        child.parent_id = category.parent_id
-    db.session.delete(category)
+@app.route('/group/delete/<int:id>', methods=['POST'])
+def delete_group(id):
+    group = Group.query.get_or_404(id)
+    for child in group.children:
+        child.parent_id = group.parent_id
+    db.session.delete(group)
     db.session.commit()
     return redirect(url_for('settings_page'))
 
@@ -161,7 +160,7 @@ def get_article(article_id):
     return jsonify({
         'id': article.id, 'title': article.title, 'content': article.content,
         'notes': article.notes, 'references': article.references, 'tags': article.tags,
-        'category_id': article.category.id
+        'group_id': article.group.id
     })
 
 @app.route('/edit/article/<int:article_id>', methods=['POST'])
@@ -170,7 +169,7 @@ def edit_article(article_id):
     data = request.get_json()
     
     article.title = data['title']
-    article.category_id = data['category_id']
+    article.group_id = data['group_id']
     article.notes = data['notes']
     article.references = data['references']
     article.tags = data['tags']
@@ -182,18 +181,15 @@ def edit_article(article_id):
 def ask():
     question = request.get_json().get('question')
     if not question: return jsonify({"error": "No question"}), 400
-    results = {
-        "gemini": query_gemini(question),
-        "google": query_google_search(question),
-        "chatgpt": query_chatgpt(question)
-    }
-    return jsonify(results)
+    return jsonify({
+        "gemini": query_gemini(question), "google": query_google_search(question), "chatgpt": query_chatgpt(question)
+    })
 
 @app.route('/synthesize', methods=['POST'])
 def synthesize_and_save():
     try:
         data = request.get_json()
-        if not all(k in data for k in ['title', 'category_id', 'texts']):
+        if not all(k in data for k in ['title', 'group_id', 'texts']):
             return jsonify({"error": "Missing required fields"}), 400
 
         synthesized_content = ""
@@ -201,7 +197,7 @@ def synthesize_and_save():
             synthesized_content = data['texts'][0]
         elif len(data['texts']) > 1:
             info_block = "\n\n---\n\n".join(data['texts'])
-            synthesis_prompt = f"Synthesize the following information into a coherent article titled '{data['title']}':\n\n{info_block}"
+            synthesis_prompt = f"Synthesize the following information into an article titled '{data['title']}':\n\n{info_block}"
             gemini_result = query_gemini(synthesis_prompt)
             synthesized_content = gemini_result if not gemini_result.startswith("Error:") else info_block
         
@@ -210,7 +206,7 @@ def synthesize_and_save():
         new_article = Article(
             title=data['title'], content=synthesized_content, notes=data.get('notes'),
             references=data.get('references'), tags=data.get('tags'), 
-            category_id=data['category_id']
+            group_id=data['group_id']
         )
         db.session.add(new_article)
         db.session.commit()

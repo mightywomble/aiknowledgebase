@@ -58,42 +58,42 @@
                 </form>
             </div>
             <div>
-                <h1 class="text-3xl font-bold text-gray-900">Manage Categories</h1>
-                 <p class="mt-1 text-gray-600">Create and organize article categories.</p>
-                <form action="{{ url_for('add_category') }}" method="POST" class="mt-8 max-w-md p-4 bg-gray-50 rounded-lg border">
-                    <h3 class="text-lg font-medium mb-4">Add New Category</h3>
+                <h1 class="text-3xl font-bold text-gray-900">Manage Groups</h1>
+                 <p class="mt-1 text-gray-600">Create and organize article groups.</p>
+                <form action="{{ url_for('add_group') }}" method="POST" class="mt-8 max-w-md p-4 bg-gray-50 rounded-lg border">
+                    <h3 class="text-lg font-medium mb-4">Add New Group</h3>
                     <div class="space-y-4">
                         <div>
-                            <label for="name" class="block text-sm font-medium">Category Name</label>
+                            <label for="name" class="block text-sm font-medium">Group Name</label>
                             <input type="text" name="name" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
                         </div>
                         <div>
-                            <label for="parent_id" class="block text-sm font-medium">Parent Category (Optional)</label>
+                            <label for="parent_id" class="block text-sm font-medium">Parent Group (Optional)</label>
                             <select name="parent_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
                                 <option value="">None (Top-level)</option>
-                                {% for category in categories %}
-                                <option value="{{ category.id }}">{{ category.name }}</option>
+                                {% for group in groups %}
+                                <option value="{{ group.id }}">{{ group.name }}</option>
                                 {% endfor %}
                             </select>
                         </div>
-                        <button type="submit" class="rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500">Add Category</button>
+                        <button type="submit" class="rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500">Add Group</button>
                     </div>
                 </form>
                 <div class="mt-8">
-                    <h3 class="text-lg font-medium mb-4">Existing Categories</h3>
+                    <h3 class="text-lg font-medium mb-4">Existing Groups</h3>
                     <ul class="space-y-2">
-                        {% for category in categories if not category.parent %}
+                        {% for group in groups if not group.parent %}
                             <li class="flex items-center justify-between p-2 bg-white rounded-md border">
-                                <span class="font-semibold" style="color: {{ category.color|replace('#', '#A') }}CC;">{{ category.name }}</span>
-                                <form action="{{ url_for('delete_category', id=category.id) }}" method="POST" onsubmit="return confirm('Are you sure? Deleting a category will also delete all its articles.');">
+                                <span class="font-semibold" style="color: {{ group.color|replace('#', '#A') }}CC;">{{ group.name }}</span>
+                                <form action="{{ url_for('delete_group', id=group.id) }}" method="POST" onsubmit="return confirm('Are you sure? Deleting a group will also delete all its articles.');">
                                     <button type="submit" class="text-red-500 hover:text-red-700 text-sm">Delete</button>
                                 </form>
                             </li>
-                            {% if category.children %}
-                                {% for child in category.children %}
+                            {% if group.children %}
+                                {% for child in group.children %}
                                 <li class="flex items-center justify-between p-2 bg-white rounded-md border ml-6">
                                     <span>- {{ child.name }}</span>
-                                    <form action="{{ url_for('delete_category', id=child.id) }}" method="POST" onsubmit="return confirm('Are you sure? Deleting a category will also delete all its articles.');">
+                                    <form action="{{ url_for('delete_group', id=child.id) }}" method="POST" onsubmit="return confirm('Are you sure? Deleting a group will also delete all its articles.');">
                                         <button type="submit" class="text-red-500 hover:text-red-700 text-sm">Delete</button>
                                     </form>
                                 </li>

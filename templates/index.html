@@ -41,8 +41,22 @@
             <div class="px-4 py-4 border-b border-gray-200">
                 <form id="filter-form" method="GET" action="{{ url_for('index') }}" class="space-y-3">
                     <input type="text" name="search" placeholder="Search articles..." value="{{ search_term or '' }}" class="w-full px-3 py-2 text-sm bg-gray-100 border-transparent rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                    <div class="grid grid-cols-2 gap-2">
+                        <select name="group" onchange="this.form.submit()" class="w-full px-3 py-2 text-sm bg-gray-100 border-transparent rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="">All Groups</option>
+                            {% for group in all_groups %}
+                            <option value="{{ group.id }}" {% if filter_group_id == group.id %}selected{% endif %}>{{ group.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <select name="tag" onchange="this.form.submit()" class="w-full px-3 py-2 text-sm bg-gray-100 border-transparent rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="">All Tags</option>
+                             {% for tag in all_tags %}
+                            <option value="{{ tag }}" {% if filter_tag == tag %}selected{% endif %}>{{ tag }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                     <select name="sort" onchange="this.form.submit()" class="w-full px-3 py-2 text-sm bg-gray-100 border-transparent rounded-md focus:ring-indigo-500 focus:border-indigo-500">
-                        <option value="category" {% if sort_by == 'category' %}selected{% endif %}>Sort by Category</option>
+                        <option value="group" {% if sort_by == 'group' %}selected{% endif %}>Sort by Group</option>
                         <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Sort by Newest</option>
                         <option value="title_asc" {% if sort_by == 'title_asc' %}selected{% endif %}>Sort by Title (A-Z)</option>
                         <option value="title_desc" {% if sort_by == 'title_desc' %}selected{% endif %}>Sort by Title (Z-A)</option>
@@ -66,13 +80,10 @@
                 </div>
                 
                 <div class="grid grid-cols-1 gap-3">
-                {% set current_category = '' %}
-                {% for article in articles %}
-                    {% if sort_by == 'category' and article.category.name != current_category %}
-                        {% set current_category = article.category.name %}
-                        <h3 class="text-md font-bold text-gray-600 px-2 pt-4 col-span-1">{{ current_category }}</h3>
-                    {% endif %}
-                    <div class="p-3 rounded-lg shadow-sm relative group" style="background-color: {{ article.category.color }};">
+                {% for group_name, items in articles|groupby('group.name') %}
+                    <h3 class="text-md font-bold text-gray-600 px-2 pt-4 col-span-1">{{ group_name }}</h3>
+                    {% for article in items %}
+                    <div class="p-3 rounded-lg shadow-sm relative group" style="background-color: {{ article.group.color }};">
                         <div class="absolute top-2 right-2 flex items-center">
                              <button class="edit-article-btn p-1 text-gray-500 hover:text-blue-700 opacity-0 group-hover:opacity-100 transition-opacity" data-id="{{ article.id }}">
                                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" /></svg>
@@ -81,6 +92,7 @@
                         </div>
                         <a href="#" class="block font-semibold text-gray-800 hover:text-black article-link" data-id="{{ article.id }}">{{ article.title }}</a>
                     </div>
+                    {% endfor %}
                 {% else %}
                     <p class="px-4 text-sm text-gray-500">No articles found.</p>
                 {% endfor %}
@@ -179,7 +191,7 @@
 
     <script>
         const allTags = {{ all_tags|tojson }};
-        const allCategories = {{ categories|tojson|safe }};
+        const allGroups = {{ groups_for_js|tojson|safe }};
         const $ = (selector) => document.querySelector(selector);
         const $$ = (selector) => document.querySelectorAll(selector);
 
@@ -299,16 +311,16 @@
             openModal('article-modal');
         }
         
-        function buildCategoryOptions(selectedId) {
+        function buildGroupOptions(selectedId) {
             let html = '';
-            const topLevel = allCategories.filter(c => c.parent_id === null);
+            const topLevel = allGroups.filter(g => g.parent_id === null);
             
-            function renderOptions(categories, depth = 0) {
-                for (const category of categories) {
-                    const isSelected = category.id === selectedId ? 'selected' : '';
+            function renderOptions(groups, depth = 0) {
+                for (const group of groups) {
+                    const isSelected = group.id === selectedId ? 'selected' : '';
                     const prefix = '&nbsp;&nbsp;'.repeat(depth);
-                    html += `<option value="${category.id}" ${isSelected}>${prefix}${category.name}</option>`;
-                    const children = allCategories.filter(c => c.parent_id === category.id);
+                    html += `<option value="${group.id}" ${isSelected}>${prefix}${group.name}</option>`;
+                    const children = allGroups.filter(g => g.parent_id === group.id);
                     if (children.length > 0) {
                         renderOptions(children, depth + 1);
                     }
@@ -324,7 +336,7 @@
             const content = `
                 <input type="hidden" id="edit-id" value="${article.id}">
                 <div><label class="block text-sm font-medium">Title</label><input type="text" id="edit-title" value="${escapeHTML(article.title)}" class="mt-1 w-full rounded-md border-gray-300"></div>
-                <div><label class="block text-sm font-medium">Category</label><select id="edit-category-id" class="mt-1 w-full rounded-md border-gray-300">${buildCategoryOptions(article.category_id)}</select></div>
+                <div><label class="block text-sm font-medium">Group</label><select id="edit-group-id" class="mt-1 w-full rounded-md border-gray-300">${buildGroupOptions(article.group_id)}</select></div>
                 <div><label class="block text-sm font-medium">Notes</label><textarea id="edit-notes" rows="4" class="mt-1 w-full rounded-md border-gray-300">${escapeHTML(article.notes)}</textarea></div>
                 <div><label class="block text-sm font-medium">References</label><textarea id="edit-references" rows="2" class="mt-1 w-full rounded-md border-gray-300">${escapeHTML(article.references)}</textarea></div>
                 <div>
@@ -342,7 +354,7 @@
         async function handleConfirmEdit() {
             const id = $('#edit-id').value;
             const payload = {
-                title: $('#edit-title').value, category_id: $('#edit-category-id').value,
+                title: $('#edit-title').value, group_id: $('#edit-group-id').value,
                 notes: $('#edit-notes').value, references: $('#edit-references').value, tags: $('#edit-tags').value
             };
             await fetch(`/edit/article/${id}`, {
@@ -356,7 +368,7 @@
             if (selectedCheckboxes.length === 0) return alert('Please select results to create an article.');
             const content = `
                 <div><label class="block text-sm font-medium">Title</label><input type="text" id="new-title" class="mt-1 w-full rounded-md border-gray-300"></div>
-                <div><label class="block text-sm font-medium">Category</label><select id="new-category-id" class="mt-1 w-full rounded-md border-gray-300">${buildCategoryOptions()}</select></div>
+                <div><label class="block text-sm font-medium">Group</label><select id="new-group-id" class="mt-1 w-full rounded-md border-gray-300">${buildGroupOptions()}</select></div>
                 <div><label class="block text-sm font-medium">Notes</label><textarea id="new-notes" rows="4" class="mt-1 w-full rounded-md border-gray-300"></textarea></div>
                 <div><label class="block text-sm font-medium">References</label><textarea id="new-references" rows="2" class="mt-1 w-full rounded-md border-gray-300"></textarea></div>
                 <div>
@@ -380,16 +392,13 @@
         }
 
         async function handleConfirmSynthesis() {
-            const textsToSynthesize = Array.from($$('#synthesis-section input:checked')).map(checkbox => {
-                return checkbox.dataset.content;
-            });
-
+            const textsToSynthesize = Array.from($$('#synthesis-section input:checked')).map(checkbox => checkbox.dataset.content);
             const payload = {
-                title: $('#new-title').value, category_id: $('#new-category-id').value,
+                title: $('#new-title').value, group_id: $('#new-group-id').value,
                 notes: $('#new-notes').value, references: $('#new-references').value, tags: $('#new-tags').value,
                 texts: textsToSynthesize
             };
-            if (!payload.title || !payload.category_id) return alert('Title and Category are required.');
+            if (!payload.title || !payload.group_id) return alert('Title and Group are required.');
             
             const btn = $('#confirm-synthesis-btn');
             btn.disabled = true;
@@ -458,7 +467,7 @@
             setTimeout(() => {
                 // Clear inputs only on synthesis modal close
                 if (id === 'synthesis-modal') {
-                    ['new-title', 'new-category-id', 'new-notes', 'new-references', 'new-tags'].forEach(inputId => {
+                    ['new-title', 'new-group-id', 'new-notes', 'new-references', 'new-tags'].forEach(inputId => {
                         const el = $(`#${inputId}`);
                         if (el) el.value = '';
                     });
