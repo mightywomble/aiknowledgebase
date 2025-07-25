@@ -5,16 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Settings - AI Knowledge Base</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/heroicons/2.0.18/24/outline/hero-icons.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-100 font-sans">
 
     <div class="flex h-screen bg-white">
         <!-- Sidebar -->
-        <aside class="w-64 bg-white border-r border-gray-200 flex flex-col">
+        <aside class="w-72 bg-white border-r border-gray-200 flex flex-col shrink-0">
             <div class="h-16 flex items-center px-6 border-b border-gray-200">
-                <svg class="h-8 w-8 text-indigo-600" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                <span class="ml-3 text-lg font-semibold text-gray-800">KB Project</span>
+                 <a href="{{ url_for('index') }}" class="flex items-center">
+                    <svg class="h-8 w-8 text-indigo-600" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <span class="ml-3 text-lg font-semibold text-gray-800">KB Project</span>
+                </a>
             </div>
             <nav class="flex-1 px-4 py-6 space-y-2">
                 <a href="{{ url_for('index') }}" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
@@ -33,7 +34,7 @@
             <h1 class="text-3xl font-bold text-gray-900">API Settings</h1>
             <p class="mt-1 text-gray-600">Configure the API keys for the services used in this application.</p>
 
-            <form action="{{ url_for('save_settings_route') }}" method="POST" class="mt-8 max-w-2xl">
+            <form action="{{ url_for('settings_page') }}" method="POST" class="mt-8 max-w-2xl">
                 <div class="space-y-6">
                     <!-- Google Gemini -->
                     <div>
@@ -41,7 +42,6 @@
                         <div class="mt-2">
                             <input type="password" name="gemini_api_key" id="gemini_api_key" value="{{ current_config.GEMINI_API_KEY }}" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
                         </div>
-                        <p class="mt-2 text-xs text-gray-500">Get from Google AI Studio.</p>
                     </div>
 
                     <!-- Google Search -->
@@ -50,14 +50,12 @@
                         <div class="mt-2">
                             <input type="password" name="google_api_key" id="google_api_key" value="{{ current_config.GOOGLE_API_KEY }}" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
                         </div>
-                         <p class="mt-2 text-xs text-gray-500">Get from Google Cloud Console.</p>
                     </div>
                     <div>
                         <label for="search_engine_id" class="block text-sm font-medium leading-6 text-gray-900">Google Search Engine ID (CX)</label>
                         <div class="mt-2">
                             <input type="text" name="search_engine_id" id="search_engine_id" value="{{ current_config.SEARCH_ENGINE_ID }}" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
                         </div>
-                        <p class="mt-2 text-xs text-gray-500">Get from Programmable Search Engine control panel.</p>
                     </div>
 
                     <!-- OpenAI -->
@@ -66,12 +64,11 @@
                         <div class="mt-2">
                             <input type="password" name="openai_api_key" id="openai_api_key" value="{{ current_config.OPENAI_API_KEY }}" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
                         </div>
-                        <p class="mt-2 text-xs text-gray-500">Get from OpenAI Platform.</p>
                     </div>
                 </div>
 
                 <div class="mt-8 border-t border-gray-200 pt-6">
-                    <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+                    <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
                         Save Settings
                     </button>
                 </div>

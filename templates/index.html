@@ -6,26 +6,18 @@
     <title>AI Knowledge Base</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Custom scrollbar for a more integrated look */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #f8fafc; }
         ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
         .prose-styles { color: #334155; }
-        .prose-styles h1, .prose-styles h2, .prose-styles h3 { color: #1e293b; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.25em; margin-top: 1em; margin-bottom: 0.5em;}
-        .prose-styles p { margin-top: 0.5em; margin-bottom: 0.5em; line-height: 1.6; }
-        .prose-styles ul { list-style-type: disc; margin-left: 1.5em; }
-        .prose-styles ol { list-style-type: decimal; margin-left: 1.5em; }
-        .prose-styles a { color: #4f46e5; text-decoration: none; }
+        .prose-styles h3 { color: #1e293b; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.25em; margin-top: 1em; margin-bottom: 0.5em;}
+        .prose-styles a { color: #4f46e5; }
         .prose-styles a:hover { text-decoration: underline; }
-        .prose-styles strong { color: #1e293b; }
-        .prose-styles code { background-color: #e2e8f0; padding: 0.2em 0.4em; margin: 0; font-size: 85%; border-radius: 3px; font-family: monospace; }
-        .prose-styles pre { background-color: #f1f5f9; padding: 1em; border-radius: 0.5rem; overflow-x: auto; }
-        .prose-styles pre code { background-color: transparent; padding: 0; }
-        .prose-styles blockquote { border-left: 4px solid #cbd5e1; padding-left: 1em; color: #64748b; }
+        .prose-styles code { background-color: #e2e8f0; padding: 0.2em 0.4em; border-radius: 3px; }
         .modal-enter { opacity: 0; transform: scale(0.95); }
-        .modal-enter-active { opacity: 1; transform: scale(1); transition: all 300ms; }
-        .modal-leave-active { opacity: 0; transform: scale(0.95); transition: all 300ms; }
+        .modal-enter-active { opacity: 1; transform: scale(1); transition: all 200ms; }
+        .modal-leave-active { opacity: 0; transform: scale(0.95); transition: all 200ms; }
         .glass-pane {
             background: rgba(255, 255, 255, 0.6);
             -webkit-backdrop-filter: blur(12px);
@@ -38,60 +30,88 @@
 
     <div class="flex h-screen bg-white">
         <!-- Sidebar -->
-        <aside class="w-64 bg-white border-r border-gray-200 flex flex-col shrink-0">
+        <aside class="w-72 bg-white border-r border-gray-200 flex flex-col shrink-0">
             <div class="h-16 flex items-center px-6 border-b border-gray-200">
-                <svg class="h-8 w-8 text-indigo-600" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                <span class="ml-3 text-lg font-semibold text-gray-800">KB Project</span>
+                <a href="{{ url_for('index') }}" class="flex items-center">
+                    <svg class="h-8 w-8 text-indigo-600" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <span class="ml-3 text-lg font-semibold text-gray-800">KB Project</span>
+                </a>
             </div>
-            <nav id="kb-nav" class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-                <a href="{{ url_for('index') }}" class="flex items-center px-4 py-2 text-gray-900 bg-gray-200 rounded-lg">
-                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955a1.5 1.5 0 012.122 0l8.954 8.955M21 12v9a2 2 0 01-2 2H5a2 2 0 01-2-2v-9M15 21v-4.5A2.5 2.5 0 0012.5 14h-1A2.5 2.5 0 009 16.5V21" /></svg>
-                    <span class="ml-3">Home</span>
-                </a>
-                <a href="{{ url_for('settings_page') }}" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
-                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-1.007 1.11-1.226a2.25 2.25 0 012.58 1.226l.114.683c.137.82.715 1.51 1.505 1.87l.79.395c.837.418 1.258 1.487 1.018 2.45l-.523 1.942a2.25 2.25 0 01-1.342 1.616.25.25 0 00-.056.09l-.443.886c-.42.84-.172 1.86.52 2.445l.698.582c.85.71 1.998.63 2.807-.184l.158-.158a2.25 2.25 0 013.182 0l.53.53a2.25 2.25 0 010 3.182l-.158.158c-.81.81-1.956.89-2.807.184l-.698-.582c-.692-.585-1.626-.755-2.445-.52l-.886.443a.25.25 0 00-.09.056 2.25 2.25 0 01-1.616 1.342l-1.942.523c-.962.24-1.998-.18-2.45-1.018l-.395-.79a2.25 2.25 0 00-1.87-1.505l-.683-.114a2.25 2.25 0 01-1.226-2.58l.114-.683c.26-1.543-.826-3.023-2.38-3.32l-.79-.158a2.25 2.25 0 01-1.98-2.288v-.04c0-1.26.95-2.322 2.18-2.496l.79-.158c1.554-.3 2.64-1.777 2.38-3.32l-.114-.683z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                    <span class="ml-3">Settings</span>
-                </a>
-                <div class="px-4 pt-4 pb-2 text-xs font-semibold text-gray-500 uppercase">Knowledge Base</div>
-                {% if categories %}
-                    {% for category in categories %}
-                        <div class="mb-4">
-                            <h3 class="text-md font-bold text-indigo-600 px-4">{{ category.name }}</h3>
-                            <ul class="mt-1 space-y-1">
-                                {% for article in category.articles %}
-                                    <li class="flex items-center justify-between text-sm text-gray-600 hover:bg-gray-100 rounded-lg group">
-                                        <a href="#" class="flex-grow py-2 px-4 hover:text-gray-900 article-link" data-id="{{ article.id }}">
-                                            - {{ article.title }}
-                                        </a>
-                                        <button class="delete-article-btn p-2 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity" data-id="{{ article.id }}">
-                                            <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
-                                        </button>
-                                    </li>
-                                {% endfor %}
-                            </ul>
+            
+            <div class="px-4 py-4 border-b border-gray-200">
+                <form id="filter-form" method="GET" action="{{ url_for('index') }}" class="space-y-3">
+                    <input type="text" name="search" placeholder="Search articles..." value="{{ search_term or '' }}" class="w-full px-3 py-2 text-sm bg-gray-100 border-transparent rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                    <select name="sort" onchange="this.form.submit()" class="w-full px-3 py-2 text-sm bg-gray-100 border-transparent rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="category" {% if sort_by == 'category' %}selected{% endif %}>Sort by Category</option>
+                        <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Sort by Newest</option>
+                        <option value="title_asc" {% if sort_by == 'title_asc' %}selected{% endif %}>Sort by Title (A-Z)</option>
+                        <option value="title_desc" {% if sort_by == 'title_desc' %}selected{% endif %}>Sort by Title (Z-A)</option>
+                    </select>
+                </form>
+            </div>
+
+            <nav id="kb-nav" class="flex-1 px-2 py-2 space-y-2 overflow-y-auto">
+                <div id="bulk-actions-bar" class="hidden sticky top-0 bg-white/80 backdrop-blur-sm z-10 p-2 border-b mb-2 rounded-md">
+                    <p class="text-sm font-semibold mb-2"><span id="selection-count">0</span> selected</p>
+                    <div class="flex gap-2">
+                        <button id="bulk-update-btn" class="flex-1 text-xs bg-blue-500 text-white px-2 py-1 rounded-md hover:bg-blue-600">Update</button>
+                        <button id="bulk-delete-btn" class="flex-1 text-xs bg-red-500 text-white px-2 py-1 rounded-md hover:bg-red-600">Delete</button>
+                    </div>
+                </div>
+
+                <div class="px-2">
+                    <label class="flex items-center text-sm">
+                        <input type="checkbox" id="select-all-checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                        <span class="ml-2 text-gray-600">Select All</span>
+                    </label>
+                </div>
+
+                {% set current_category = '' %}
+                {% for article in articles %}
+                    {% if sort_by == 'category' and article.category.name != current_category %}
+                        {% set current_category = article.category.name %}
+                        <h3 class="text-md font-bold text-indigo-600 px-2 pt-4">{{ current_category }}</h3>
+                    {% endif %}
+                    <li class="flex items-center justify-between text-sm text-gray-600 hover:bg-gray-100 rounded-lg group list-none">
+                        <label class="flex-grow flex items-center p-2 cursor-pointer">
+                            <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 article-checkbox" data-id="{{ article.id }}">
+                            <a href="#" class="ml-3 hover:text-gray-900 article-link" data-id="{{ article.id }}">{{ article.title }}</a>
+                        </label>
+                        <div class="flex items-center pr-2">
+                            <button class="edit-article-btn p-1 text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100" data-id="{{ article.id }}">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg>
+                            </button>
                         </div>
-                    {% endfor %}
+                    </li>
                 {% else %}
-                    <p class="px-4 text-sm text-gray-500">No articles yet.</p>
-                {% endif %}
+                    <p class="px-4 text-sm text-gray-500">No articles found.</p>
+                {% endfor %}
             </nav>
         </aside>
 
         <!-- Main Content -->
         <main class="flex-1 flex flex-col overflow-hidden bg-gray-50">
-            <header class="h-16 flex items-center justify-center px-8 border-b border-gray-200 bg-white z-10">
+            <header class="h-16 flex items-center justify-between px-8 border-b border-gray-200 bg-white z-10">
+                <div class="flex-1"></div> <!-- Left Spacer -->
                 <form id="ask-form" class="w-full max-w-2xl">
                     <div class="relative">
                         <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd" /></svg>
-                        <input type="text" id="question-input" class="w-full pl-10 pr-4 py-2 bg-gray-100 border border-transparent rounded-lg focus:bg-white focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 transition" placeholder="Ask a question to get started...">
+                        <input type="text" id="question-input" class="w-full pl-10 pr-4 py-2 bg-gray-100 border-transparent rounded-lg focus:bg-white focus:border-indigo-300" placeholder="Ask a question to get started...">
                     </div>
                 </form>
+                <div class="flex-1 flex justify-end">
+                    <a href="{{ url_for('settings_page') }}" class="p-2 text-gray-500 hover:text-indigo-600 rounded-full hover:bg-gray-100 transition-colors">
+                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-1.007 1.11-1.226a2.25 2.25 0 012.58 1.226l.114.683c.137.82.715 1.51 1.505 1.87l.79.395c.837.418 1.258 1.487 1.018 2.45l-.523 1.942a2.25 2.25 0 01-1.342 1.616.25.25 0 00-.056.09l-.443.886c-.42.84-.172 1.86.52 2.445l.698.582c.85.71 1.998.63 2.807-.184l.158-.158a2.25 2.25 0 013.182 0l.53.53a2.25 2.25 0 010 3.182l-.158.158c-.81.81-1.956.89-2.807.184l-.698-.582c-.692-.585-1.626-.755-2.445-.52l-.886.443a.25.25 0 00-.09.056 2.25 2.25 0 01-1.616 1.342l-1.942.523c-.962.24-1.998-.18-2.45-1.018l-.395-.79a2.25 2.25 0 00-1.87-1.505l-.683-.114a2.25 2.25 0 01-1.226-2.58l.114-.683c.26-1.543-.826-3.023-2.38-3.32l-.79-.158a2.25 2.25 0 01-1.98-2.288v-.04c0-1.26.95-2.322 2.18-2.496l.79-.158c1.554-.3 2.64-1.777 2.38-3.32l-.114-.683z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    </a>
+                </div>
             </header>
             <div id="results-area" class="flex-1 flex flex-col gap-6 p-6 overflow-y-auto">
                 <div class="text-center text-gray-500 p-8 glass-pane rounded-xl flex-1 flex flex-col justify-center">
                     <h2 class="text-2xl font-bold text-gray-700">Welcome to your Knowledge Base</h2>
-                    <p class="mt-2">Ask a question above to search Google, Gemini, and ChatGPT.</p>
-                    <p>Select results and click "Create Article" to begin.</p>
+                    <p class="mt-2">Ask a question, or select an article from the left.</p>
                 </div>
             </div>
         </main>
@@ -100,363 +120,279 @@
     <!-- Modals Container -->
     <div id="modal-backdrop" class="fixed inset-0 bg-black bg-opacity-60 hidden z-40"></div>
     
-    <!-- Article Viewer Modal -->
     <div id="article-modal" class="fixed inset-0 flex items-center justify-center p-4 hidden z-50 modal-enter">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
-            <div class="p-4 border-b border-gray-200 flex justify-between items-center">
-                <h2 id="modal-title" class="text-2xl font-bold text-gray-900"></h2>
-                <button onclick="closeArticleModal()" class="text-gray-400 hover:text-gray-800">&times;</button>
-            </div>
+            <h2 id="modal-title" class="p-4 border-b text-2xl font-bold text-gray-900"></h2>
             <div id="modal-content" class="p-6 overflow-y-auto prose-styles"></div>
-            <div class="p-4 bg-gray-50 border-t border-gray-200 text-right rounded-b-xl">
-                 <button onclick="closeArticleModal()" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Close</button>
+            <div class="p-4 bg-gray-50 border-t text-right rounded-b-xl">
+                 <button onclick="closeModal('article-modal')" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Close</button>
             </div>
         </div>
     </div>
 
-    <!-- Synthesis Input Modal -->
     <div id="synthesis-modal" class="fixed inset-0 flex items-center justify-center p-4 hidden z-50 modal-enter">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-            <div class="p-6 border-b">
-                <h3 class="text-xl font-medium leading-6 text-gray-900">Create New KB Article</h3>
+            <h3 class="p-6 border-b text-xl font-medium text-gray-900">Create New KB Article</h3>
+            <div id="synthesis-modal-content" class="p-6 space-y-4 overflow-y-auto"></div>
+            <div class="bg-gray-50 px-6 py-4 flex justify-end space-x-3 rounded-b-xl border-t">
+                <button onclick="closeModal('synthesis-modal')" class="rounded-md bg-white px-3 py-2 text-sm font-semibold">Cancel</button>
+                <button id="confirm-synthesis-btn" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white">Create Article</button>
             </div>
+        </div>
+    </div>
+    
+    <div id="edit-modal" class="fixed inset-0 flex items-center justify-center p-4 hidden z-50 modal-enter">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <h3 class="p-6 border-b text-xl font-medium text-gray-900">Edit Article</h3>
+            <div id="edit-modal-content" class="p-6 space-y-4 overflow-y-auto"></div>
+            <div class="bg-gray-50 px-6 py-4 flex justify-end space-x-3 rounded-b-xl border-t">
+                <button onclick="closeModal('edit-modal')" class="rounded-md bg-white px-3 py-2 text-sm font-semibold">Cancel</button>
+                <button id="confirm-edit-btn" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white">Save Changes</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="bulk-update-modal" class="fixed inset-0 flex items-center justify-center p-4 hidden z-50 modal-enter">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <h3 class="p-6 border-b text-xl font-medium text-gray-900">Bulk Update Articles</h3>
             <div class="p-6 space-y-4 overflow-y-auto">
+                <p class="text-sm text-gray-600">Add information to all selected articles. Existing content will be kept.</p>
                 <div>
-                    <label for="new-title" class="block text-sm font-medium text-gray-700">Article Title</label>
-                    <input type="text" id="new-title" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    <label for="bulk-notes" class="block text-sm font-medium text-gray-700">Notes to Add</label>
+                    <textarea id="bulk-notes" rows="4" class="mt-1 block w-full rounded-md border-gray-300"></textarea>
                 </div>
                 <div>
-                    <label for="new-category" class="block text-sm font-medium text-gray-700">Category</label>
-                    <input type="text" id="new-category" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="e.g., Databases, Python">
+                    <label for="bulk-references" class="block text-sm font-medium text-gray-700">References to Add</label>
+                    <textarea id="bulk-references" rows="2" class="mt-1 block w-full rounded-md border-gray-300"></textarea>
                 </div>
                 <div>
-                    <label for="new-notes" class="block text-sm font-medium text-gray-700">Notes (Markdown supported)</label>
-                    <textarea id="new-notes" rows="6" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Add your notes here..."></textarea>
-                </div>
-                <div>
-                    <label for="new-references" class="block text-sm font-medium text-gray-700">References (one URL per line)</label>
-                    <textarea id="new-references" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="https://example.com"></textarea>
-                </div>
-                <div>
-                    <label for="new-tags" class="block text-sm font-medium text-gray-700">Tags (comma-separated)</label>
-                    <input type="text" id="new-tags" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="python, database, api">
+                    <label for="bulk-tags" class="block text-sm font-medium text-gray-700">Tags to Add</label>
+                    <input type="text" id="bulk-tags" class="mt-1 block w-full rounded-md border-gray-300">
                 </div>
             </div>
             <div class="bg-gray-50 px-6 py-4 flex justify-end space-x-3 rounded-b-xl border-t">
-                <button type="button" onclick="closeSynthesisModal()" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Cancel</button>
-                <button type="button" id="confirm-synthesis-btn" class="inline-flex justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">Create Article</button>
+                <button onclick="closeModal('bulk-update-modal')" class="rounded-md bg-white px-3 py-2 text-sm font-semibold">Cancel</button>
+                <button id="confirm-bulk-update-btn" class="rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white">Update Articles</button>
             </div>
         </div>
     </div>
-
-    <!-- Confirmation Modal -->
-    <div id="confirm-modal" class="fixed inset-0 flex items-center justify-center p-4 hidden z-50 modal-enter">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm">
-            <div class="p-6 text-center">
-                <svg class="mx-auto h-12 w-12 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                </svg>
-                <h3 class="mt-5 text-lg font-medium leading-6 text-gray-900">Delete Article</h3>
-                <div class="mt-2">
-                    <p class="text-sm text-gray-500">Are you sure? This action cannot be undone.</p>
-                </div>
-            </div>
-            <div class="bg-gray-50 px-6 py-4 flex justify-end space-x-3 rounded-b-xl">
-                <button type="button" id="confirm-cancel-btn" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Cancel</button>
-                <button type="button" id="confirm-ok-btn" class="inline-flex justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500">Delete</button>
-            </div>
-        </div>
-    </div>
-
 
     <script>
-        // --- DOM Elements ---
-        const askForm = document.getElementById('ask-form');
-        const questionInput = document.getElementById('question-input');
-        const resultsArea = document.getElementById('results-area');
-        const modalBackdrop = document.getElementById('modal-backdrop');
-        const kbNav = document.getElementById('kb-nav');
+        const $ = (selector) => document.querySelector(selector);
+        const $$ = (selector) => document.querySelectorAll(selector);
 
         // --- Event Listeners ---
-        askForm.addEventListener('submit', handleAskSubmit);
-        document.getElementById('confirm-synthesis-btn').addEventListener('click', handleSynthesis);
-        
-        kbNav.addEventListener('click', (e) => {
+        $('#ask-form').addEventListener('submit', handleAskSubmit);
+        $('#kb-nav').addEventListener('click', handleSidebarClick);
+        $('#select-all-checkbox').addEventListener('change', handleSelectAll);
+        $('#bulk-delete-btn').addEventListener('click', () => handleBulkAction('delete'));
+        $('#bulk-update-btn').addEventListener('click', () => openModal('bulk-update-modal'));
+        $('#confirm-bulk-update-btn').addEventListener('click', () => handleBulkAction('update'));
+
+        // --- Main Functions ---
+        async function handleAskSubmit(e) {
+            e.preventDefault();
+            if (!$('#question-input').value.trim()) return;
+            $('#results-area').innerHTML = `<div class="text-center p-8 glass-pane rounded-xl flex-1 flex items-center justify-center"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>`;
+            try {
+                const response = await fetch('/ask', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: $('#question-input').value }),
+                });
+                if (!response.ok) throw new Error('Network response was not ok');
+                displayResults(await response.json());
+            } catch (error) {
+                $('#results-area').innerHTML = `<div class="bg-red-100 p-4 rounded-lg">Error fetching answers.</div>`;
+            }
+        }
+
+        function displayResults(results) {
+            let content = '<div class="space-y-6" id="synthesis-section">';
+            let hasResults = false;
+            if (results.gemini && !results.gemini.startsWith("Error:")) {
+                content += createResultCard('gemini', 'Google Gemini', results.gemini);
+                hasResults = true;
+            }
+            if (results.chatgpt && !results.chatgpt.startsWith("Error:")) {
+                content += createResultCard('chatgpt', 'OpenAI ChatGPT', results.chatgpt);
+                hasResults = true;
+            }
+            if (results.google && results.google.length > 0 && !results.google[0].title.startsWith("Error")) {
+                 content += createGoogleResultsCard(results.google);
+                 hasResults = true;
+            }
+            content += '</div>';
+            
+            if(hasResults) {
+                content += `<div class="mt-auto pt-4 text-center"><button id="start-synthesis-btn" class="rounded-md bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-green-500">Create Article from Selected</button></div>`;
+            } else {
+                content = `<div class="bg-yellow-100 p-4 rounded-lg">No results found. Check API keys in Settings.</div>`;
+            }
+
+            $('#results-area').innerHTML = content;
+            if(hasResults) $('#start-synthesis-btn').addEventListener('click', openSynthesisModal);
+        }
+
+        function handleSidebarClick(e) {
             const articleLink = e.target.closest('.article-link');
-            const deleteBtn = e.target.closest('.delete-article-btn');
+            const editBtn = e.target.closest('.edit-article-btn');
+            const checkbox = e.target.closest('.article-checkbox');
 
             if (articleLink) {
                 e.preventDefault();
                 handleArticleClick(articleLink.dataset.id);
             }
-            if (deleteBtn) {
+            if (editBtn) {
                 e.preventDefault();
-                handleArticleDelete(deleteBtn.dataset.id);
+                openEditModal(editBtn.dataset.id);
             }
-        });
-
-
-        // --- Main Functions ---
-        async function handleAskSubmit(e) {
-            e.preventDefault();
-            const question = questionInput.value.trim();
-            if (!question) return;
-
-            resultsArea.innerHTML = `
-                <div class="text-center p-8 glass-pane rounded-xl flex-1 flex flex-col justify-center">
-                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-                    <p class="mt-4 text-gray-600">Searching for answers...</p>
-                </div>`;
-            
-            try {
-                const response = await fetch('/ask', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ question }),
-                });
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const results = await response.json();
-                displayResults(results);
-            } catch (error) {
-                console.error('Error fetching answers:', error);
-                resultsArea.innerHTML = `<div class="bg-red-100 border border-red-400 text-red-700 p-4 rounded-lg"><strong>Error:</strong> Could not fetch answers. Check server logs.</div>`;
+            if (checkbox) {
+                updateBulkActionBar();
             }
         }
 
-        function displayResults(results) {
-            resultsArea.innerHTML = `
-                <div class="space-y-6" id="synthesis-section"></div>
-                <div class="mt-auto pt-4 text-center">
-                    <button id="start-synthesis-btn" class="rounded-md bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-green-500">
-                        Create Article from Selected
-                    </button>
-                </div>`;
-            
-            const synthesisSection = document.getElementById('synthesis-section');
-            let hasResults = false;
-
-            if (results.gemini && !results.gemini.startsWith("Error:")) {
-                synthesisSection.innerHTML += createResultCard('gemini', 'Google Gemini', results.gemini);
-                hasResults = true;
-            }
-            if (results.chatgpt && !results.chatgpt.startsWith("Error:")) {
-                synthesisSection.innerHTML += createResultCard('chatgpt', 'OpenAI ChatGPT', results.chatgpt);
-                hasResults = true;
-            }
-            if (results.google && results.google.length > 0 && !results.google[0].title.startsWith("Error")) {
-                 synthesisSection.innerHTML += createGoogleResultsCard(results.google);
-                 hasResults = true;
-            }
-
-            if (!hasResults) {
-                resultsArea.innerHTML = `<div class="bg-yellow-100 border border-yellow-400 text-yellow-800 p-4 rounded-lg"><strong>Notice:</strong> No results were returned. Please check your API keys in the Settings page.</div>`;
-                return;
-            }
-            
-            document.getElementById('start-synthesis-btn').addEventListener('click', openSynthesisModal);
-        }
-
-        async function handleSynthesis() {
-            const newTitle = document.getElementById('new-title').value.trim();
-            const newCategory = document.getElementById('new-category').value.trim();
-            const newNotes = document.getElementById('new-notes').value.trim();
-            const newReferences = document.getElementById('new-references').value.trim();
-            const newTags = document.getElementById('new-tags').value.trim();
-            const selectedCheckboxes = document.querySelectorAll('#synthesis-section input[type="checkbox"]:checked');
-            
-            if (!newTitle || !newCategory) {
-                alert('Please provide both a title and a category.');
-                return;
-            }
-            
-            if (selectedCheckboxes.length === 0) {
-                 alert('Please select at least one search result to synthesize.');
-                 return;
-            }
-            const textsToSynthesize = Array.from(selectedCheckboxes).map(cb => cb.dataset.content);
-
-            const btn = document.getElementById('confirm-synthesis-btn');
-            btn.disabled = true;
-            btn.textContent = 'Saving...';
-
-            try {
-                const response = await fetch('/synthesize', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        title: newTitle, 
-                        category: newCategory, 
-                        notes: newNotes,
-                        references: newReferences,
-                        tags: newTags,
-                        texts: textsToSynthesize 
-                    })
-                });
-                const result = await response.json();
-                if (!response.ok || result.error) throw new Error(result.error || 'Synthesis failed.');
-                
-                closeSynthesisModal();
-                location.reload();
-            } catch (error) {
-                console.error('Synthesis error:', error);
-                alert(`Error: ${error.message}`);
-                btn.disabled = false;
-                btn.textContent = 'Create Article';
-            }
-        }
-        
-        async function handleArticleClick(articleId) {
-            try {
-                const response = await fetch(`/get/article/${articleId}`);
-                if (!response.ok) throw new Error('Article not found');
-                const article = await response.json();
-                showArticleModal(article);
-            } catch (error) {
-                console.error('Error fetching article:', error);
-                alert('Could not load the article.');
-            }
-        }
-
-        function handleArticleDelete(articleId) {
-            showConfirmModal(async (confirmed) => {
-                if (!confirmed) return;
-                try {
-                    const response = await fetch(`/delete/article/${articleId}`, { method: 'POST' });
-                    const result = await response.json();
-                    if (!response.ok || !result.success) throw new Error(result.message || 'Failed to delete article.');
-                    location.reload();
-                } catch(error) {
-                    console.error('Error deleting article:', error);
-                    alert(`Could not delete article: ${error.message}`);
-                }
-            });
-        }
-
-        // --- UI Card Creators ---
-        function createResultCard(id, title, content) {
-            return `<div class="bg-white/80 p-5 rounded-lg border border-gray-200/50 shadow-sm"><label for="check-${id}" class="flex items-start cursor-pointer"><input type="checkbox" id="check-${id}" class="mt-1 h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" data-content="${escapeHTML(content)}"><div class="ml-4"><h4 class="font-bold text-lg text-indigo-700">${title}</h4><div class="mt-2 text-gray-600 prose-styles">${renderMarkdown(content)}</div></div></label></div>`;
-        }
-
-        function createGoogleResultsCard(items) {
-            const googleItems = items.map((item, index) => {
-                const content = `Title: ${item.title}\nSnippet: ${item.snippet}\nLink: ${item.link}`;
-                return `<div class="border-t border-gray-200/50 pt-3 mt-3 first:mt-0 first:border-t-0 first:pt-0"><label for="check-google-${index}" class="flex items-start cursor-pointer"><input type="checkbox" id="check-google-${index}" class="mt-1 h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" data-content="${escapeHTML(content)}"><div class="ml-4"><a href="${item.link}" target="_blank" class="text-indigo-600 hover:underline font-semibold">${item.title}</a><p class="text-gray-500 text-sm mt-1">${item.snippet}</p></div></label></div>`;
-            }).join('');
-            return `<div class="bg-white/80 p-5 rounded-lg border border-gray-200/50 shadow-sm"><h4 class="font-bold text-lg text-blue-700">Google Search Results</h4><div class="mt-2 space-y-1">${googleItems}</div></div>`;
-        }
-
-        // --- Modal Control ---
-        const articleModal = document.getElementById('article-modal');
-        const modalTitle = document.getElementById('modal-title');
-        const modalContent = document.getElementById('modal-content');
-        
-        function showArticleModal(article) {
-            modalTitle.textContent = article.title;
-            
+        async function handleArticleClick(id) {
+            const response = await fetch(`/get/article/${id}`);
+            const article = await response.json();
+            $('#modal-title').textContent = article.title;
             let contentHtml = `<h3>Synthesized Content</h3>${renderMarkdown(article.content)}`;
-            
-            if (article.notes) {
-                contentHtml += `<h3 class="mt-6">Notes</h3>${renderMarkdown(article.notes)}`;
-            }
-            if (article.references) {
-                const links = article.references.split('\n').map(link => `<li><a href="${escapeHTML(link)}" target="_blank">${escapeHTML(link)}</a></li>`).join('');
-                contentHtml += `<h3 class="mt-6">References</h3><ul>${links}</ul>`;
-            }
-            if (article.tags) {
-                const tags = article.tags.split(',').map(tag => `<span class="inline-block bg-indigo-100 text-indigo-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full">${escapeHTML(tag.trim())}</span>`).join('');
-                contentHtml += `<div class="mt-6"><h3>Tags</h3>${tags}</div>`;
-            }
-
-            modalContent.innerHTML = contentHtml;
-            modalBackdrop.classList.remove('hidden');
-            articleModal.classList.remove('hidden');
-            articleModal.classList.add('modal-enter-active');
-            articleModal.classList.remove('modal-enter');
+            if (article.notes) contentHtml += `<h3 class="mt-6">Notes</h3>${renderMarkdown(article.notes)}`;
+            if (article.references) contentHtml += `<h3 class="mt-6">References</h3><ul>${article.references.split('\n').map(l => `<li><a href="${l}" target="_blank">${l}</a></li>`).join('')}</ul>`;
+            if (article.tags) contentHtml += `<div class="mt-6"><h3>Tags</h3>${article.tags.split(',').map(t => `<span class="bg-indigo-100 text-xs mr-2 px-2.5 py-0.5 rounded-full">${t.trim()}</span>`).join('')}</div>`;
+            $('#modal-content').innerHTML = contentHtml;
+            openModal('article-modal');
         }
 
-        function closeArticleModal() {
-            articleModal.classList.add('modal-leave-active');
-            setTimeout(() => {
-                modalBackdrop.classList.add('hidden');
-                articleModal.classList.add('hidden');
-                articleModal.classList.remove('modal-enter-active', 'modal-leave-active');
-            }, 300);
+        async function openEditModal(id) {
+            const res = await fetch(`/get/article/${id}`);
+            const article = await res.json();
+            const content = `
+                <input type="hidden" id="edit-id" value="${article.id}">
+                <div><label class="block text-sm font-medium">Title</label><input type="text" id="edit-title" value="${escapeHTML(article.title)}" class="mt-1 w-full rounded-md border-gray-300"></div>
+                <div><label class="block text-sm font-medium">Category</label><input type="text" id="edit-category" value="${escapeHTML(article.category)}" class="mt-1 w-full rounded-md border-gray-300"></div>
+                <div><label class="block text-sm font-medium">Notes</label><textarea id="edit-notes" rows="4" class="mt-1 w-full rounded-md border-gray-300">${escapeHTML(article.notes)}</textarea></div>
+                <div><label class="block text-sm font-medium">References</label><textarea id="edit-references" rows="2" class="mt-1 w-full rounded-md border-gray-300">${escapeHTML(article.references)}</textarea></div>
+                <div><label class="block text-sm font-medium">Tags</label><input type="text" id="edit-tags" value="${escapeHTML(article.tags)}" class="mt-1 w-full rounded-md border-gray-300"></div>
+            `;
+            $('#edit-modal-content').innerHTML = content;
+            $('#confirm-edit-btn').onclick = handleConfirmEdit;
+            openModal('edit-modal');
         }
 
-        const synthesisModal = document.getElementById('synthesis-modal');
+        async function handleConfirmEdit() {
+            const id = $('#edit-id').value;
+            const payload = {
+                title: $('#edit-title').value, category: $('#edit-category').value,
+                notes: $('#edit-notes').value, references: $('#edit-references').value, tags: $('#edit-tags').value
+            };
+            await fetch(`/edit/article/${id}`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+            });
+            location.reload();
+        }
+
         function openSynthesisModal() {
-            const selectedCheckboxes = document.querySelectorAll('#synthesis-section input[type="checkbox"]:checked');
-            if (selectedCheckboxes.length === 0) {
-                alert('Please select at least one result to create an article from.');
-                return;
-            }
-            modalBackdrop.classList.remove('hidden');
-            synthesisModal.classList.remove('hidden');
-            synthesisModal.classList.add('modal-enter-active');
-            synthesisModal.classList.remove('modal-enter');
+            if ($$('#synthesis-section input:checked').length === 0) return alert('Please select results to create an article.');
+            const content = `
+                <div><label class="block text-sm font-medium">Title</label><input type="text" id="new-title" class="mt-1 w-full rounded-md border-gray-300"></div>
+                <div><label class="block text-sm font-medium">Category</label><input type="text" id="new-category" class="mt-1 w-full rounded-md border-gray-300"></div>
+                <div><label class="block text-sm font-medium">Notes</label><textarea id="new-notes" rows="4" class="mt-1 w-full rounded-md border-gray-300"></textarea></div>
+                <div><label class="block text-sm font-medium">References</label><textarea id="new-references" rows="2" class="mt-1 w-full rounded-md border-gray-300"></textarea></div>
+                <div><label class="block text-sm font-medium">Tags</label><input type="text" id="new-tags" class="mt-1 w-full rounded-md border-gray-300"></div>
+            `;
+            $('#synthesis-modal-content').innerHTML = content;
+            $('#confirm-synthesis-btn').onclick = handleConfirmSynthesis;
+            openModal('synthesis-modal');
         }
 
-        function closeSynthesisModal() {
-            synthesisModal.classList.add('modal-leave-active');
-            setTimeout(() => {
-                modalBackdrop.classList.add('hidden');
-                synthesisModal.classList.add('hidden');
-                synthesisModal.classList.remove('modal-enter-active', 'modal-leave-active');
-                ['new-title', 'new-category', 'new-notes', 'new-references', 'new-tags'].forEach(id => document.getElementById(id).value = '');
-                document.getElementById('confirm-synthesis-btn').disabled = false;
-                document.getElementById('confirm-synthesis-btn').textContent = 'Create Article';
-            }, 300);
+        async function handleConfirmSynthesis() {
+            const payload = {
+                title: $('#new-title').value, category: $('#new-category').value,
+                notes: $('#new-notes').value, references: $('#new-references').value, tags: $('#new-tags').value,
+                texts: Array.from($$('#synthesis-section input:checked')).map(cb => cb.dataset.content)
+            };
+            if (!payload.title || !payload.category) return alert('Title and Category are required.');
+            await fetch('/synthesize', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+            });
+            location.reload();
         }
         
-        const confirmModal = document.getElementById('confirm-modal');
-        const confirmOkBtn = document.getElementById('confirm-ok-btn');
-        const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
+        async function handleBulkAction(action) {
+            const ids = Array.from($$('.article-checkbox:checked')).map(cb => cb.dataset.id);
+            if (ids.length === 0) return;
+            
+            let payload = { action, ids };
+            if (action === 'update') {
+                payload.data = {
+                    notes: $('#bulk-notes').value,
+                    references: $('#bulk-references').value,
+                    tags: $('#bulk-tags').value
+                };
+                closeModal('bulk-update-modal');
+            } else if (action === 'delete') {
+                if (!confirm(`Are you sure you want to delete ${ids.length} articles?`)) return;
+            }
 
-        function showConfirmModal(callback) {
-            modalBackdrop.classList.remove('hidden');
-            confirmModal.classList.remove('hidden');
-            confirmModal.classList.add('modal-enter-active');
-            confirmModal.classList.remove('modal-enter');
-
-            const handleOk = () => { callback(true); closeConfirmModal(); cleanup(); };
-            const handleCancel = () => { callback(false); closeConfirmModal(); cleanup(); };
-            const cleanup = () => {
-                confirmOkBtn.removeEventListener('click', handleOk);
-                confirmCancelBtn.removeEventListener('click', handleCancel);
-            };
-
-            confirmOkBtn.addEventListener('click', handleOk);
-            confirmCancelBtn.addEventListener('click', handleCancel);
+            await fetch('/bulk_action', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+            });
+            location.reload();
+        }
+        
+        function handleSelectAll(e) {
+            $$('.article-checkbox').forEach(checkbox => checkbox.checked = e.target.checked);
+            updateBulkActionBar();
         }
 
-        function closeConfirmModal() {
-            confirmModal.classList.add('modal-leave-active');
+        function updateBulkActionBar() {
+            const count = $$('.article-checkbox:checked').length;
+            $('#selection-count').textContent = count;
+            $('#bulk-actions-bar').classList.toggle('hidden', count === 0);
+        }
+
+        // --- UI & Modal ---
+        function openModal(id) {
+            const modal = $(`#${id}`);
+            if (!modal) return;
+            
+            $('#modal-backdrop').classList.remove('hidden');
+            modal.classList.remove('hidden');
+            
+            // Force a reflow before adding the active class to ensure the transition plays
+            void modal.offsetWidth; 
+
+            modal.classList.add('modal-enter-active');
+            modal.classList.remove('modal-enter');
+        }
+
+        function closeModal(id) {
+            const modal = $(`#${id}`);
+            if (!modal) return;
+
+            modal.classList.add('modal-leave-active');
+            modal.classList.remove('modal-enter-active');
+
             setTimeout(() => {
-                if (articleModal.classList.contains('hidden') && synthesisModal.classList.contains('hidden')) {
-                    modalBackdrop.classList.add('hidden');
-                }
-                confirmModal.classList.add('hidden');
-                confirmModal.classList.remove('modal-enter-active', 'modal-leave-active');
-            }, 300);
+                $('#modal-backdrop').classList.add('hidden');
+                modal.classList.add('hidden');
+                modal.classList.remove('modal-leave-active');
+                modal.classList.add('modal-enter'); // Reset for next open
+            }, 200); // Match CSS transition duration
         }
-
-        // --- Utility Functions ---
-        function escapeHTML(str) {
-            const text = str || '';
-            return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+        
+        function createResultCard(id, title, content) {
+            return `<div class="bg-white/80 p-5 rounded-lg border"><label for="check-${id}" class="flex items-start cursor-pointer"><input type="checkbox" id="check-${id}" class="mt-1 h-5 w-5" data-content="${escapeHTML(content)}"><div class="ml-4"><h4 class="font-bold text-lg text-indigo-700">${title}</h4><div class="mt-2 text-gray-600 prose-styles">${renderMarkdown(content)}</div></div></label></div>`;
         }
-
+        function createGoogleResultsCard(items) {
+            const googleItems = items.map((item, i) => `<div class="border-t pt-3 mt-3 first:mt-0 first:border-t-0"><label for="check-google-${i}" class="flex items-start cursor-pointer"><input type="checkbox" id="check-google-${i}" class="mt-1 h-5 w-5" data-content="${escapeHTML(`Title: ${item.title}\nSnippet: ${item.snippet}`)}"><div class="ml-4"><a href="${item.link}" target="_blank" class="hover:underline font-semibold">${item.title}</a><p class="text-sm mt-1">${item.snippet}</p></div></label></div>`).join('');
+            return `<div class="bg-white/80 p-5 rounded-lg border"><h4 class="font-bold text-lg text-blue-700">Google Search</h4><div class="mt-2">${googleItems}</div></div>`;
+        }
+        function escapeHTML(str) { return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
         function renderMarkdown(text) {
-            if (!text) return '';
-            let html = escapeHTML(text);
-            html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>').replace(/^## (.*$)/gim, '<h2>$1</h2>').replace(/^# (.*$)/gim, '<h1>$1</h1>');
-            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>');
-            html = html.replace(/^> (.*$)/gim, '<blockquote>$1</blockquote>');
-            html = html.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>');
-            html = html.replace(/^\s*[\-\*] (.*)/gm, '<ul><li>$1</li></ul>').replace(/<\/ul>\n<ul>/g, '');
-            html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>').replace(/`(.*?)`/g, '<code>$1</code>');
-            html = html.replace(/\n/g, '<br>').replace(/<br><(h[1-6]|ul|pre|blockquote)>/g, '<$1>').replace(/<\/(h[1-6]|ul|pre|blockquote)><br>/g, '</$1>');
-            return html;
+            let html = escapeHTML(text || '');
+            return html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
         }
     </script>
 </body>
