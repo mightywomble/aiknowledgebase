@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Knowledge Base</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Added Marked.js for robust Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Added highlight.js for code syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <style>
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #f8fafc; }
@@ -14,7 +19,9 @@
         .prose-styles h3 { color: #1e293b; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.25em; margin-top: 1em; margin-bottom: 0.5em;}
         .prose-styles a { color: #4f46e5; }
         .prose-styles a:hover { text-decoration: underline; }
-        .prose-styles code { background-color: #e2e8f0; padding: 0.2em 0.4em; border-radius: 3px; }
+        .prose-styles code:not(pre code) { background-color: #e2e8f0; padding: 0.2em 0.4em; border-radius: 3px; font-family: monospace; }
+        .prose-styles pre { background-color: #f1f5f9; padding: 1em; border-radius: 0.5rem; overflow-x: auto; }
+        .prose-styles pre code { background-color: transparent; padding: 0; }
         .modal-enter { opacity: 0; transform: scale(0.95); }
         .modal-enter-active { opacity: 1; transform: scale(1); transition: all 200ms; }
         .modal-leave-active { opacity: 0; transform: scale(0.95); transition: all 200ms; }
@@ -125,7 +132,7 @@
                     <p class="mt-2">Ask a question, or select an article from the left.</p>
                 </div>
             </div>
-            <div class="absolute bottom-0 left-0 right-0 p-4 flex justify-center">
+            <div class="absolute bottom-0 left-0 right-0 p-4 flex justify-center items-center gap-4">
                  <form id="ask-form" class="w-full max-w-2xl">
                     <div class="relative">
                         <input type="text" id="question-input" class="w-full pl-5 pr-12 py-3 bg-white border border-gray-300 rounded-full shadow-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition" placeholder="Ask a question to get started...">
@@ -134,6 +141,9 @@
                         </button>
                     </div>
                 </form>
+                <button id="start-synthesis-btn" class="hidden flex-shrink-0 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-5 rounded-full shadow-lg transition-transform transform hover:scale-105">
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </button>
             </div>
         </main>
     </div>
@@ -290,14 +300,16 @@
             }
             mainContent += '</div>';
             
-            if(hasResults) {
-                mainContent += `<div class="mt-auto pt-4 text-center"><button id="start-synthesis-btn" class="rounded-md bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-green-500">Create Article from Selected</button></div>`;
-            } else if (!topContent) { // Only show "No results" if there isn't already a quota message
+            if(!hasResults && !topContent) {
                 mainContent = `<div class="bg-yellow-100 p-4 rounded-lg">No results found. Check API keys in Settings.</div>`;
             }
 
             $('#results-area').innerHTML = topContent + mainContent;
-            if(hasResults) $('#start-synthesis-btn').addEventListener('click', openSynthesisModal);
+            if(hasResults) {
+                const btn = $('#start-synthesis-btn');
+                btn.classList.remove('hidden');
+                btn.addEventListener('click', openSynthesisModal);
+            }
         }
 
         function handleSidebarClick(e) {
@@ -339,19 +351,19 @@
 
         async function handleShareArticle() {
             const title = $('#modal-title').textContent;
-            const content = $('#modal-content').innerText; // Get plain text for sharing
+            const content = $('#modal-content').innerText;
             if (navigator.share) {
                 try {
-                    await navigator.share({
-                        title: title,
-                        text: `Check out this article: ${title}\n\n${content.substring(0, 200)}...`,
-                        url: window.location.href,
-                    });
-                } catch (error) {
-                    console.error('Error sharing:', error);
-                }
+                    await navigator.share({ title: title, text: `Article: ${title}\n\n${content}` });
+                } catch (error) { console.error('Share error:', error); }
             } else {
-                alert('Web Share API is not supported in your browser.');
+                try {
+                    await navigator.clipboard.writeText(`Article: ${title}\n\n${content}`);
+                    alert('Article content copied to clipboard!');
+                } catch (err) {
+                    console.error('Clipboard copy failed:', err);
+                    alert('Could not copy to clipboard.');
+                }
             }
         }
         
@@ -411,8 +423,19 @@
             const selectedCheckboxes = $$('#synthesis-section input:checked');
             if (selectedCheckboxes.length === 0) return alert('Please select results to create an article.');
             const content = `
+                <div class="flex items-end gap-2">
+                    <div class="flex-grow">
+                        <label class="block text-sm font-medium">Group</label>
+                        <select id="new-group-id" class="mt-1 w-full rounded-md border-gray-300">${buildGroupOptions()}</select>
+                    </div>
+                    <button id="add-group-toggle-btn" class="flex-shrink-0 p-2 bg-gray-200 rounded-md hover:bg-gray-300">+</button>
+                </div>
+                <div id="add-group-form" class="hidden p-3 mt-2 border rounded-md bg-gray-50 space-y-2">
+                    <input type="text" id="new-group-name" placeholder="New group name..." class="w-full text-sm rounded-md border-gray-300">
+                    <select id="new-group-parent-id" class="w-full text-sm rounded-md border-gray-300">${buildGroupOptions()}</select>
+                    <button id="add-group-confirm-btn" class="text-sm bg-green-500 text-white px-3 py-1 rounded-md">Add</button>
+                </div>
                 <div><label class="block text-sm font-medium">Title</label><input type="text" id="new-title" class="mt-1 w-full rounded-md border-gray-300"></div>
-                <div><label class="block text-sm font-medium">Group</label><select id="new-group-id" class="mt-1 w-full rounded-md border-gray-300">${buildGroupOptions()}</select></div>
                 <div><label class="block text-sm font-medium">Notes</label><textarea id="new-notes" rows="4" class="mt-1 w-full rounded-md border-gray-300"></textarea></div>
                 <div><label class="block text-sm font-medium">References</label><textarea id="new-references" rows="2" class="mt-1 w-full rounded-md border-gray-300"></textarea></div>
                 <div>
@@ -434,7 +457,24 @@
 
             renderTagButtons('new-tags-container', 'new-tags');
             $('#confirm-synthesis-btn').onclick = handleConfirmSynthesis;
+            $('#add-group-toggle-btn').onclick = () => $('#add-group-form').classList.toggle('hidden');
+            $('#add-group-confirm-btn').onclick = handleAddGroupInModal;
             openModal('synthesis-modal');
+        }
+        
+        async function handleAddGroupInModal() {
+            const name = $('#new-group-name').value;
+            const parentId = $('#new-group-parent-id').value;
+            if (!name) return;
+            
+            const formData = new FormData();
+            formData.append('name', name);
+            formData.append('parent_id', parentId);
+
+            await fetch('/group/add', { method: 'POST', body: formData });
+            
+            alert('Group added! The page will now reload to update the group list.');
+            location.reload();
         }
 
         async function handleConfirmSynthesis() {
@@ -549,14 +589,24 @@
         function createGoogleResultsCard(items) {
             const googleItems = items.map((item, i) => {
                 const content = `Title: ${item.title}\nSnippet: ${item.snippet}\nLink: ${item.link}`;
-                return `<div class="border-t pt-3 mt-3 first:mt-0 first:border-t-0"><label for="check-google-${i}" class="flex items-start cursor-pointer"><input type="checkbox" id="check-google-${i}" class="mt-1 h-5 w-5" data-content="${escapeHTML(content)}" data-link="${escapeHTML(item.link)}"><div class="ml-4"><a href="${item.link}" target="_blank" class="hover:underline font-semibold">${item.title}</a><p class="text-sm mt-1">${item.snippet}</p></div></label></div>`
+                return `<div class="border-t pt-4 mt-4 first:mt-0 first:border-t-0 first:pt-0"><label for="check-google-${i}" class="flex items-start cursor-pointer"><input type="checkbox" id="check-google-${i}" class="mt-1 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" data-content="${escapeHTML(content)}" data-link="${escapeHTML(item.link)}"><div class="ml-3 flex-1"><p class="font-semibold text-gray-800 bg-yellow-100 p-2 rounded-md">${escapeHTML(item.title)}</p><p class="text-sm mt-2 text-gray-600">${escapeHTML(item.snippet)}</p><div class="mt-2"><a href="${item.link}" target="_blank" class="inline-block text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full hover:bg-blue-200 font-medium">Source Link</a></div></div></label></div>`
             }).join('');
             return `<div class="bg-white/80 p-5 rounded-lg border"><h4 class="font-bold text-lg text-blue-700">Google Search</h4><div class="mt-2">${googleItems}</div></div>`;
         }
         function escapeHTML(str) { 
-            return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&quot;').replace(/'/g, '&#039;');
+            return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
         }
         function renderMarkdown(text) {
+            if (window.marked) {
+                const html = marked.parse(text || '');
+                const container = document.createElement('div');
+                container.innerHTML = html;
+                container.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+                return container.innerHTML;
+            }
+            // Fallback for basic rendering
             let html = escapeHTML(text || '');
             return html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
         }
