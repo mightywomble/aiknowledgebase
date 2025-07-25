@@ -48,7 +48,15 @@ class Article(db.Model):
     tags = db.Column(db.String(255), nullable=True)
     group_id = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=False)
 
-# --- API HELPER FUNCTIONS ---
+# --- API & LOCAL SEARCH HELPER FUNCTIONS ---
+
+def query_local_kb(search_term):
+    """Searches the local database for relevant articles."""
+    search_like = f"%{search_term}%"
+    articles = Article.query.filter(
+        or_(Article.title.ilike(search_like), Article.content.ilike(search_like), Article.tags.ilike(search_like))
+    ).limit(3).all()
+    return [{'id': a.id, 'title': a.title, 'content': a.content} for a in articles]
 
 def query_gemini(prompt):
     api_key = config.get('GEMINI_API_KEY')
@@ -181,8 +189,12 @@ def edit_article(article_id):
 def ask():
     question = request.get_json().get('question')
     if not question: return jsonify({"error": "No question"}), 400
+    
     return jsonify({
-        "gemini": query_gemini(question), "google": query_google_search(question), "chatgpt": query_chatgpt(question)
+        "local_kb": query_local_kb(question),
+        "gemini": query_gemini(question), 
+        "google": query_google_search(question), 
+        "chatgpt": query_chatgpt(question)
     })
 
 @app.route('/synthesize', methods=['POST'])
@@ -197,7 +209,7 @@ def synthesize_and_save():
             synthesized_content = data['texts'][0]
         elif len(data['texts']) > 1:
             info_block = "\n\n---\n\n".join(data['texts'])
-            synthesis_prompt = f"Synthesize the following information into an article titled '{data['title']}':\n\n{info_block}"
+            synthesis_prompt = f"Synthesize the following into an article titled '{data['title']}':\n\n{info_block}"
             gemini_result = query_gemini(synthesis_prompt)
             synthesized_content = gemini_result if not gemini_result.startswith("Error:") else info_block
         
