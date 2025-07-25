@@ -197,15 +197,39 @@
         async function handleAskSubmit(e) {
             e.preventDefault();
             if (!$('#question-input').value.trim()) return;
-            $('#results-area').innerHTML = `<div class="text-center p-8 glass-pane rounded-xl flex-1 flex items-center justify-center"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>`;
+
+            $('#results-area').innerHTML = `
+                <div class="text-center p-8 glass-pane rounded-xl flex-1 flex flex-col justify-center">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-4">Fetching Knowledge...</h3>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5 mb-4">
+                        <div id="progress-bar" class="bg-indigo-600 h-2.5 rounded-full transition-all duration-500" style="width: 10%"></div>
+                    </div>
+                    <p id="progress-status" class="text-sm text-gray-600">Initializing...</p>
+                </div>`;
+            
+            const progressBar = $('#progress-bar');
+            const progressStatus = $('#progress-status');
+
             try {
+                progressStatus.textContent = 'Querying AI services...';
                 const response = await fetch('/ask', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ question: $('#question-input').value }),
                 });
+                
+                progressBar.style.width = '75%';
+                progressStatus.textContent = 'Processing results...';
+
                 if (!response.ok) throw new Error('Network response was not ok');
-                displayResults(await response.json());
+                
+                const results = await response.json();
+                
+                progressBar.style.width = '100%';
+                progressStatus.textContent = 'Done!';
+
+                setTimeout(() => displayResults(results), 500);
+
             } catch (error) {
                 $('#results-area').innerHTML = `<div class="bg-red-100 p-4 rounded-lg">Error fetching answers.</div>`;
             }
@@ -262,7 +286,7 @@
             $('#modal-title').textContent = article.title;
             let contentHtml = `<h3>Synthesized Content</h3>${renderMarkdown(article.content)}`;
             if (article.notes) contentHtml += `<h3 class="mt-6">Notes</h3>${renderMarkdown(article.notes)}`;
-            if (article.references) contentHtml += `<h3 class="mt-6">References</h3><ul>${article.references.split('\n').map(l => `<li><a href="${l}" target="_blank">${l}</a></li>`).join('')}</ul>`;
+            if (article.references) contentHtml += `<h3 class="mt-6">References</h3><ul>${article.references.split('\n').filter(Boolean).map(l => `<li><a href="${l}" target="_blank">${l}</a></li>`).join('')}</ul>`;
             if (article.tags) contentHtml += `<div class="mt-6"><h3>Tags</h3>${article.tags.split(',').map(t => `<span class="bg-indigo-100 text-xs mr-2 px-2.5 py-0.5 rounded-full">${t.trim()}</span>`).join('')}</div>`;
             $('#modal-content').innerHTML = contentHtml;
             openModal('article-modal');
@@ -302,7 +326,8 @@
         }
 
         function openSynthesisModal() {
-            if ($$('#synthesis-section input:checked').length === 0) return alert('Please select results to create an article.');
+            const selectedCheckboxes = $$('#synthesis-section input:checked');
+            if (selectedCheckboxes.length === 0) return alert('Please select results to create an article.');
             const content = `
                 <div><label class="block text-sm font-medium">Title</label><input type="text" id="new-title" class="mt-1 w-full rounded-md border-gray-300"></div>
                 <div><label class="block text-sm font-medium">Category</label><input type="text" id="new-category" class="mt-1 w-full rounded-md border-gray-300"></div>
@@ -315,6 +340,14 @@
                 </div>
             `;
             $('#synthesis-modal-content').innerHTML = content;
+
+            const references = Array.from(selectedCheckboxes)
+                .map(cb => cb.dataset.link)
+                .filter(Boolean);
+            if (references.length > 0) {
+                $('#new-references').value = references.join('\n');
+            }
+
             renderTagButtons('new-tags-container', 'new-tags');
             $('#confirm-synthesis-btn').onclick = handleConfirmSynthesis;
             openModal('synthesis-modal');
@@ -435,7 +468,7 @@
         function createGoogleResultsCard(items) {
             const googleItems = items.map((item, i) => {
                 const content = `Title: ${item.title}\nSnippet: ${item.snippet}\nLink: ${item.link}`;
-                return `<div class="border-t pt-3 mt-3 first:mt-0 first:border-t-0"><label for="check-google-${i}" class="flex items-start cursor-pointer"><input type="checkbox" id="check-google-${i}" class="mt-1 h-5 w-5" data-content="${escapeHTML(content)}"><div class="ml-4"><a href="${item.link}" target="_blank" class="hover:underline font-semibold">${item.title}</a><p class="text-sm mt-1">${item.snippet}</p></div></label></div>`
+                return `<div class="border-t pt-3 mt-3 first:mt-0 first:border-t-0"><label for="check-google-${i}" class="flex items-start cursor-pointer"><input type="checkbox" id="check-google-${i}" class="mt-1 h-5 w-5" data-content="${escapeHTML(content)}" data-link="${escapeHTML(item.link)}"><div class="ml-4"><a href="${item.link}" target="_blank" class="hover:underline font-semibold">${item.title}</a><p class="text-sm mt-1">${item.snippet}</p></div></label></div>`
             }).join('');
             return `<div class="bg-white/80 p-5 rounded-lg border"><h4 class="font-bold text-lg text-blue-700">Google Search</h4><div class="mt-2">${googleItems}</div></div>`;
         }

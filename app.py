@@ -1,6 +1,7 @@
 import os
 import json
 import random
+import traceback
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import desc, or_
@@ -53,13 +54,17 @@ class Article(db.Model):
 
 def query_gemini(prompt):
     api_key = config.get('GEMINI_API_KEY')
-    if not api_key: return "Error: Gemini API key not configured."
+    if not api_key: 
+        return "Error: Gemini API key not configured."
     try:
         import google.generativeai as genai
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-1.5-flash')
-        return model.generate_content(prompt).text
-    except Exception as e: return f"Error: {e}"
+        response = model.generate_content(prompt)
+        return response.text
+    except Exception as e: 
+        print(f"!!!!!! Gemini API Error !!!!!!\n{e}")
+        return f"Error: {e}"
 
 def query_google_search(query_text):
     api_key = config.get('GOOGLE_API_KEY')
@@ -165,30 +170,55 @@ def edit_article(article_id):
 def ask():
     question = request.get_json().get('question')
     if not question: return jsonify({"error": "No question"}), 400
-    return jsonify({
+    
+    # --- FIX: Isolate API calls so one failure doesn't stop others ---
+    results = {
         "gemini": query_gemini(question),
         "google": query_google_search(question),
         "chatgpt": query_chatgpt(question)
-    })
+    }
+    return jsonify(results)
 
 @app.route('/synthesize', methods=['POST'])
 def synthesize_and_save():
-    data = request.get_json()
-    if not all(k in data for k in ['title', 'category', 'texts']):
-        return jsonify({"error": "Missing required fields"}), 400
+    try:
+        data = request.get_json()
+        if not all(k in data for k in ['title', 'category', 'texts']):
+            return jsonify({"error": "Missing required fields"}), 400
 
-    synthesis_prompt = f"Synthesize the following information into a coherent article titled '{data['title']}':\n\n{json.dumps(data['texts'])}"
-    synthesized_content = query_gemini(synthesis_prompt)
-    if synthesized_content.startswith("Error:"): return jsonify({"error": synthesized_content}), 500
+        # --- FIX: More robust synthesis logic ---
+        synthesized_content = ""
+        if len(data['texts']) == 1:
+            # If only one item is selected, no need to synthesize.
+            synthesized_content = data['texts'][0]
+        elif len(data['texts']) > 1:
+            # If multiple items, try to synthesize with Gemini.
+            info_block = "\n\n---\n\n".join(data['texts'])
+            synthesis_prompt = f"Synthesize the following information into a coherent article titled '{data['title']}':\n\n{info_block}"
+            
+            gemini_result = query_gemini(synthesis_prompt)
+            if not gemini_result or gemini_result.startswith("Error:"):
+                # Fallback if Gemini fails: just join the texts.
+                synthesized_content = info_block
+            else:
+                synthesized_content = gemini_result
+        
+        if not synthesized_content:
+            return jsonify({"error": "No content to save."}), 400
 
-    new_article = Article(
-        title=data['title'], content=synthesized_content, notes=data.get('notes'),
-        references=data.get('references'), tags=data.get('tags'), 
-        category=get_or_create_category(data['category'])
-    )
-    db.session.add(new_article)
-    db.session.commit()
-    return jsonify({"success": True})
+        new_article = Article(
+            title=data['title'], content=synthesized_content, notes=data.get('notes'),
+            references=data.get('references'), tags=data.get('tags'), 
+            category=get_or_create_category(data['category'])
+        )
+        
+        db.session.add(new_article)
+        db.session.commit()
+        return jsonify({"success": True})
+    except Exception as e:
+        traceback.print_exc()
+        db.session.rollback()
+        return jsonify({"error": f"An unexpected server error occurred: {e}"}), 500
 
 @app.route('/bulk_action', methods=['POST'])
 def bulk_action():
