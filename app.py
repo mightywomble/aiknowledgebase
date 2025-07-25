@@ -260,7 +260,9 @@ def settings_page():
     
     groups = Group.query.order_by(Group.name).all()
     roles = Role.query.all()
-    return render_template('settings.html', current_config=config, groups=groups, roles=roles)
+    scheme = request.headers.get('X-Forwarded-Proto', 'http')
+    redirect_uri = url_for('google_callback', _external=True, _scheme=scheme)
+    return render_template('settings.html', current_config=config, groups=groups, roles=roles, google_redirect_uri=redirect_uri)
 
 @app.route('/user_management')
 @login_required
