@@ -41,7 +41,7 @@
             <div class="h-16 flex items-center px-6 border-b border-gray-200">
                 <a href="{{ url_for('index') }}" class="flex items-center">
                     <svg class="h-8 w-8 text-indigo-600" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    <span class="ml-3 text-lg font-semibold text-gray-800">KB Project</span>
+                    <span class="ml-3 text-lg font-semibold text-gray-800">AI Knowledge Base </span>
                 </a>
             </div>
             
@@ -89,7 +89,7 @@
                 <div>
                 {% for group_name, items in articles|groupby('group.name') %}
                     <div>
-                        <button class="w-full flex items-center justify-between text-left text-md font-bold text-gray-600 px-2 py-2 rounded-md hover:bg-gray-100 group-toggle">
+                        <button class="w-full flex items-center justify-between text-left text-md font-bold text-gray-600 px-2 py-2 rounded-md hover:bg-gray-100 group-toggle" data-group-name="{{ group_name }}">
                             <span>{{ group_name }}</span>
                             <svg class="h-5 w-5 transform transition-transform chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
@@ -224,6 +224,9 @@
         const $$ = (selector) => document.querySelectorAll(selector);
 
         // --- Event Listeners ---
+        document.addEventListener('DOMContentLoaded', () => {
+            restoreGroupStates();
+        });
         $('#ask-form').addEventListener('submit', handleAskSubmit);
         $('#kb-nav').addEventListener('click', handleSidebarClick);
         $('#select-all-checkbox').addEventListener('change', handleSelectAll);
@@ -334,10 +337,14 @@
                 updateBulkActionBar();
             }
             if(groupToggle) {
+                const groupName = groupToggle.dataset.groupName;
                 const articleList = groupToggle.nextElementSibling;
                 const chevron = groupToggle.querySelector('.chevron');
+                
                 articleList.classList.toggle('hidden');
                 chevron.classList.toggle('rotate-180');
+                
+                updateGroupState(groupName, articleList.classList.contains('hidden'));
             }
         }
 
@@ -438,8 +445,10 @@
                     <button id="add-group-toggle-btn" class="flex-shrink-0 p-2 bg-gray-200 rounded-md hover:bg-gray-300">+</button>
                 </div>
                 <div id="add-group-form" class="hidden p-3 mt-2 border rounded-md bg-gray-50 space-y-2">
+                    <label class="block text-sm font-medium">New Group Name</label>
                     <input type="text" id="new-group-name" placeholder="New group name..." class="w-full text-sm rounded-md border-gray-300">
-                    <select id="new-group-parent-id" class="w-full text-sm rounded-md border-gray-300">${buildGroupOptions()}</select>
+                    <label class="block text-sm font-medium">Parent Group (Optional)</label>
+                    <select id="new-group-parent-id" class="w-full text-sm rounded-md border-gray-300"><option value="">None (Top-level)</option>${buildGroupOptions()}</select>
                     <button id="add-group-confirm-btn" class="text-sm bg-green-500 text-white px-3 py-1 rounded-md">Add</button>
                 </div>
                 <div><label class="block text-sm font-medium">Title</label><input type="text" id="new-title" class="mt-1 w-full rounded-md border-gray-300"></div>
@@ -636,6 +645,27 @@
                 }
             });
             return html;
+        }
+        function restoreGroupStates() {
+            const collapsedGroups = JSON.parse(localStorage.getItem('collapsedGroups')) || [];
+            $$('.group-toggle').forEach(toggle => {
+                const groupName = toggle.dataset.groupName;
+                if (collapsedGroups.includes(groupName)) {
+                    toggle.nextElementSibling.classList.add('hidden');
+                    toggle.querySelector('.chevron').classList.add('rotate-180');
+                }
+            });
+        }
+        function updateGroupState(groupName, isCollapsed) {
+            let collapsedGroups = JSON.parse(localStorage.getItem('collapsedGroups')) || [];
+            if (isCollapsed) {
+                if (!collapsedGroups.includes(groupName)) {
+                    collapsedGroups.push(groupName);
+                }
+            } else {
+                collapsedGroups = collapsedGroups.filter(name => name !== groupName);
+            }
+            localStorage.setItem('collapsedGroups', JSON.stringify(collapsedGroups));
         }
     </script>
 </body>
