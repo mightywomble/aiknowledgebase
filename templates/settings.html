@@ -7,7 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 font-sans">
-
     <div class="flex h-screen bg-white">
         <!-- Sidebar -->
         <aside class="w-72 bg-white border-r border-gray-200 flex flex-col shrink-0">
@@ -30,51 +29,81 @@
         </aside>
 
         <!-- Main Content -->
-        <main class="flex-1 p-8 overflow-y-auto">
-            <h1 class="text-3xl font-bold text-gray-900">API Settings</h1>
-            <p class="mt-1 text-gray-600">Configure the API keys for the services used in this application.</p>
-
-            <form action="{{ url_for('settings_page') }}" method="POST" class="mt-8 max-w-2xl">
-                <div class="space-y-6">
-                    <!-- Google Gemini -->
-                    <div>
-                        <label for="gemini_api_key" class="block text-sm font-medium leading-6 text-gray-900">Google Gemini API Key</label>
-                        <div class="mt-2">
-                            <input type="password" name="gemini_api_key" id="gemini_api_key" value="{{ current_config.GEMINI_API_KEY }}" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+        <main class="flex-1 p-8 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">API Settings</h1>
+                <p class="mt-1 text-gray-600">Configure API keys for external services.</p>
+                <form action="{{ url_for('settings_page') }}" method="POST" class="mt-8 max-w-md">
+                    <div class="space-y-6">
+                        <div>
+                            <label for="gemini_api_key" class="block text-sm font-medium">Google Gemini API Key</label>
+                            <input type="password" name="gemini_api_key" value="{{ current_config.GEMINI_API_KEY }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                        </div>
+                        <div>
+                            <label for="google_api_key" class="block text-sm font-medium">Google Search API Key</label>
+                            <input type="password" name="google_api_key" value="{{ current_config.GOOGLE_API_KEY }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                        </div>
+                        <div>
+                            <label for="search_engine_id" class="block text-sm font-medium">Google Search Engine ID</label>
+                            <input type="text" name="search_engine_id" value="{{ current_config.SEARCH_ENGINE_ID }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                        </div>
+                        <div>
+                            <label for="openai_api_key" class="block text-sm font-medium">OpenAI API Key</label>
+                            <input type="password" name="openai_api_key" value="{{ current_config.OPENAI_API_KEY }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
                         </div>
                     </div>
-
-                    <!-- Google Search -->
-                    <div>
-                        <label for="google_api_key" class="block text-sm font-medium leading-6 text-gray-900">Google Custom Search API Key</label>
-                        <div class="mt-2">
-                            <input type="password" name="google_api_key" id="google_api_key" value="{{ current_config.GOOGLE_API_KEY }}" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
-                        </div>
+                    <div class="mt-8 border-t border-gray-200 pt-6">
+                        <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">Save API Settings</button>
                     </div>
-                    <div>
-                        <label for="search_engine_id" class="block text-sm font-medium leading-6 text-gray-900">Google Search Engine ID (CX)</label>
-                        <div class="mt-2">
-                            <input type="text" name="search_engine_id" id="search_engine_id" value="{{ current_config.SEARCH_ENGINE_ID }}" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                </form>
+            </div>
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Manage Categories</h1>
+                 <p class="mt-1 text-gray-600">Create and organize article categories.</p>
+                <form action="{{ url_for('add_category') }}" method="POST" class="mt-8 max-w-md p-4 bg-gray-50 rounded-lg border">
+                    <h3 class="text-lg font-medium mb-4">Add New Category</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="name" class="block text-sm font-medium">Category Name</label>
+                            <input type="text" name="name" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
                         </div>
-                    </div>
-
-                    <!-- OpenAI -->
-                    <div>
-                        <label for="openai_api_key" class="block text-sm font-medium leading-6 text-gray-900">OpenAI API Key</label>
-                        <div class="mt-2">
-                            <input type="password" name="openai_api_key" id="openai_api_key" value="{{ current_config.OPENAI_API_KEY }}" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                        <div>
+                            <label for="parent_id" class="block text-sm font-medium">Parent Category (Optional)</label>
+                            <select name="parent_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                                <option value="">None (Top-level)</option>
+                                {% for category in categories %}
+                                <option value="{{ category.id }}">{{ category.name }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
+                        <button type="submit" class="rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500">Add Category</button>
                     </div>
+                </form>
+                <div class="mt-8">
+                    <h3 class="text-lg font-medium mb-4">Existing Categories</h3>
+                    <ul class="space-y-2">
+                        {% for category in categories if not category.parent %}
+                            <li class="flex items-center justify-between p-2 bg-white rounded-md border">
+                                <span class="font-semibold" style="color: {{ category.color|replace('#', '#A') }}CC;">{{ category.name }}</span>
+                                <form action="{{ url_for('delete_category', id=category.id) }}" method="POST" onsubmit="return confirm('Are you sure? Deleting a category will also delete all its articles.');">
+                                    <button type="submit" class="text-red-500 hover:text-red-700 text-sm">Delete</button>
+                                </form>
+                            </li>
+                            {% if category.children %}
+                                {% for child in category.children %}
+                                <li class="flex items-center justify-between p-2 bg-white rounded-md border ml-6">
+                                    <span>- {{ child.name }}</span>
+                                    <form action="{{ url_for('delete_category', id=child.id) }}" method="POST" onsubmit="return confirm('Are you sure? Deleting a category will also delete all its articles.');">
+                                        <button type="submit" class="text-red-500 hover:text-red-700 text-sm">Delete</button>
+                                    </form>
+                                </li>
+                                {% endfor %}
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
                 </div>
-
-                <div class="mt-8 border-t border-gray-200 pt-6">
-                    <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
-                        Save Settings
-                    </button>
-                </div>
-            </form>
+            </div>
         </main>
     </div>
-
 </body>
 </html>

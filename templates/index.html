@@ -179,6 +179,7 @@
 
     <script>
         const allTags = {{ all_tags|tojson }};
+        const allCategories = {{ categories|tojson|safe }};
         const $ = (selector) => document.querySelector(selector);
         const $$ = (selector) => document.querySelectorAll(selector);
 
@@ -236,29 +237,35 @@
         }
 
         function displayResults(results) {
-            let content = '<div class="space-y-6" id="synthesis-section">';
+            let topContent = '';
+            if (results.gemini && results.gemini.toLowerCase().includes("quota")) {
+                topContent += `<div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4" role="alert"><p class="font-bold">Gemini API Quota Exceeded</p><p>You have reached your daily limit for the Gemini API. Results from other services are shown below.</p></div>`;
+            }
+
+            let mainContent = '<div class="space-y-6" id="synthesis-section">';
             let hasResults = false;
+
             if (results.gemini && !results.gemini.startsWith("Error:")) {
-                content += createResultCard('gemini', 'Google Gemini', results.gemini);
+                mainContent += createResultCard('gemini', 'Google Gemini', results.gemini);
                 hasResults = true;
             }
             if (results.chatgpt && !results.chatgpt.startsWith("Error:")) {
-                content += createResultCard('chatgpt', 'OpenAI ChatGPT', results.chatgpt);
+                mainContent += createResultCard('chatgpt', 'OpenAI ChatGPT', results.chatgpt);
                 hasResults = true;
             }
             if (results.google && results.google.length > 0 && !results.google[0].title.startsWith("Error")) {
-                 content += createGoogleResultsCard(results.google);
+                 mainContent += createGoogleResultsCard(results.google);
                  hasResults = true;
             }
-            content += '</div>';
+            mainContent += '</div>';
             
             if(hasResults) {
-                content += `<div class="mt-auto pt-4 text-center"><button id="start-synthesis-btn" class="rounded-md bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-green-500">Create Article from Selected</button></div>`;
-            } else {
-                content = `<div class="bg-yellow-100 p-4 rounded-lg">No results found. Check API keys in Settings.</div>`;
+                mainContent += `<div class="mt-auto pt-4 text-center"><button id="start-synthesis-btn" class="rounded-md bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-green-500">Create Article from Selected</button></div>`;
+            } else if (!topContent) { // Only show "No results" if there isn't already a quota message
+                mainContent = `<div class="bg-yellow-100 p-4 rounded-lg">No results found. Check API keys in Settings.</div>`;
             }
 
-            $('#results-area').innerHTML = content;
+            $('#results-area').innerHTML = topContent + mainContent;
             if(hasResults) $('#start-synthesis-btn').addEventListener('click', openSynthesisModal);
         }
 
@@ -291,6 +298,25 @@
             $('#modal-content').innerHTML = contentHtml;
             openModal('article-modal');
         }
+        
+        function buildCategoryOptions(selectedId) {
+            let html = '';
+            const topLevel = allCategories.filter(c => c.parent_id === null);
+            
+            function renderOptions(categories, depth = 0) {
+                for (const category of categories) {
+                    const isSelected = category.id === selectedId ? 'selected' : '';
+                    const prefix = '&nbsp;&nbsp;'.repeat(depth);
+                    html += `<option value="${category.id}" ${isSelected}>${prefix}${category.name}</option>`;
+                    const children = allCategories.filter(c => c.parent_id === category.id);
+                    if (children.length > 0) {
+                        renderOptions(children, depth + 1);
+                    }
+                }
+            }
+            renderOptions(topLevel);
+            return html;
+        }
 
         async function openEditModal(id) {
             const res = await fetch(`/get/article/${id}`);
@@ -298,7 +324,7 @@
             const content = `
                 <input type="hidden" id="edit-id" value="${article.id}">
                 <div><label class="block text-sm font-medium">Title</label><input type="text" id="edit-title" value="${escapeHTML(article.title)}" class="mt-1 w-full rounded-md border-gray-300"></div>
-                <div><label class="block text-sm font-medium">Category</label><input type="text" id="edit-category" value="${escapeHTML(article.category)}" class="mt-1 w-full rounded-md border-gray-300"></div>
+                <div><label class="block text-sm font-medium">Category</label><select id="edit-category-id" class="mt-1 w-full rounded-md border-gray-300">${buildCategoryOptions(article.category_id)}</select></div>
                 <div><label class="block text-sm font-medium">Notes</label><textarea id="edit-notes" rows="4" class="mt-1 w-full rounded-md border-gray-300">${escapeHTML(article.notes)}</textarea></div>
                 <div><label class="block text-sm font-medium">References</label><textarea id="edit-references" rows="2" class="mt-1 w-full rounded-md border-gray-300">${escapeHTML(article.references)}</textarea></div>
                 <div>
@@ -316,7 +342,7 @@
         async function handleConfirmEdit() {
             const id = $('#edit-id').value;
             const payload = {
-                title: $('#edit-title').value, category: $('#edit-category').value,
+                title: $('#edit-title').value, category_id: $('#edit-category-id').value,
                 notes: $('#edit-notes').value, references: $('#edit-references').value, tags: $('#edit-tags').value
             };
             await fetch(`/edit/article/${id}`, {
@@ -330,7 +356,7 @@
             if (selectedCheckboxes.length === 0) return alert('Please select results to create an article.');
             const content = `
                 <div><label class="block text-sm font-medium">Title</label><input type="text" id="new-title" class="mt-1 w-full rounded-md border-gray-300"></div>
-                <div><label class="block text-sm font-medium">Category</label><input type="text" id="new-category" class="mt-1 w-full rounded-md border-gray-300"></div>
+                <div><label class="block text-sm font-medium">Category</label><select id="new-category-id" class="mt-1 w-full rounded-md border-gray-300">${buildCategoryOptions()}</select></div>
                 <div><label class="block text-sm font-medium">Notes</label><textarea id="new-notes" rows="4" class="mt-1 w-full rounded-md border-gray-300"></textarea></div>
                 <div><label class="block text-sm font-medium">References</label><textarea id="new-references" rows="2" class="mt-1 w-full rounded-md border-gray-300"></textarea></div>
                 <div>
@@ -359,11 +385,11 @@
             });
 
             const payload = {
-                title: $('#new-title').value, category: $('#new-category').value,
+                title: $('#new-title').value, category_id: $('#new-category-id').value,
                 notes: $('#new-notes').value, references: $('#new-references').value, tags: $('#new-tags').value,
                 texts: textsToSynthesize
             };
-            if (!payload.title || !payload.category) return alert('Title and Category are required.');
+            if (!payload.title || !payload.category_id) return alert('Title and Category are required.');
             
             const btn = $('#confirm-synthesis-btn');
             btn.disabled = true;
@@ -432,7 +458,7 @@
             setTimeout(() => {
                 // Clear inputs only on synthesis modal close
                 if (id === 'synthesis-modal') {
-                    ['new-title', 'new-category', 'new-notes', 'new-references', 'new-tags'].forEach(inputId => {
+                    ['new-title', 'new-category-id', 'new-notes', 'new-references', 'new-tags'].forEach(inputId => {
                         const el = $(`#${inputId}`);
                         if (el) el.value = '';
                     });

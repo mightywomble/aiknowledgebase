@@ -37,9 +37,11 @@ config = load_config()
 
 class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), unique=True, nullable=False)
-    color = db.Column(db.String(20), nullable=False, default='#E5E7EB') # New color field
-    articles = db.relationship('Article', backref='category', lazy=True, cascade="all, delete-orphan")
+    name = db.Column(db.String(100), nullable=False)
+    color = db.Column(db.String(20), nullable=False, default='#E5E7EB')
+    parent_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=True)
+    parent = db.relationship('Category', remote_side=[id], backref='children')
+    articles = db.relationship('Article', backref='category', lazy='dynamic', cascade="all, delete-orphan")
 
 class Article(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -54,14 +56,12 @@ class Article(db.Model):
 
 def query_gemini(prompt):
     api_key = config.get('GEMINI_API_KEY')
-    if not api_key: 
-        return "Error: Gemini API key not configured."
+    if not api_key: return "Error: Gemini API key not configured."
     try:
         import google.generativeai as genai
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-1.5-flash')
-        response = model.generate_content(prompt)
-        return response.text
+        return model.generate_content(prompt).text
     except Exception as e: 
         print(f"!!!!!! Gemini API Error !!!!!!\n{e}")
         return f"Error: {e}"
@@ -91,35 +91,32 @@ def query_chatgpt(prompt):
 
 @app.route('/')
 def index():
-    """Main page with sorting, searching, and filtering for KB articles."""
     search_term = request.args.get('search', '')
     sort_by = request.args.get('sort', 'category')
     
     query = Article.query.join(Category)
-
     if search_term:
         search_like = f"%{search_term}%"
         query = query.filter(or_(Article.title.ilike(search_like), Article.tags.ilike(search_like)))
 
-    if sort_by == 'title_asc':
-        query = query.order_by(Article.title)
-    elif sort_by == 'title_desc':
-        query = query.order_by(desc(Article.title))
-    elif sort_by == 'newest':
-        query = query.order_by(desc(Article.id))
-    else: # Default sort by category then title
-        query = query.order_by(Category.name, Article.title)
+    if sort_by == 'title_asc': query = query.order_by(Article.title)
+    elif sort_by == 'title_desc': query = query.order_by(desc(Article.title))
+    elif sort_by == 'newest': query = query.order_by(desc(Article.id))
+    else: query = query.order_by(Category.name, Article.title)
     
     articles = query.all()
     
     all_tags_query = db.session.query(Article.tags).filter(Article.tags.isnot(None)).distinct().all()
     all_tags = sorted(list(set(tag.strip() for tags_tuple in all_tags_query for tag in tags_tuple[0].split(',') if tag.strip())))
+    
+    # --- FIX: Convert categories to a JSON-serializable format for the template ---
+    all_categories_query = Category.query.order_by(Category.name).all()
+    categories_for_js = [{'id': c.id, 'name': c.name, 'parent_id': c.parent_id} for c in all_categories_query]
 
-    return render_template('index.html', articles=articles, all_tags=all_tags, search_term=search_term, sort_by=sort_by)
+    return render_template('index.html', articles=articles, all_tags=all_tags, categories=categories_for_js, search_term=search_term, sort_by=sort_by)
 
 @app.route('/settings', methods=['GET', 'POST'])
 def settings_page():
-    """Handles settings display and saving."""
     if request.method == 'POST':
         global config
         new_config = {
@@ -130,8 +127,33 @@ def settings_page():
         }
         save_config(new_config)
         config = new_config
-        return redirect(url_for('index'))
-    return render_template('settings.html', current_config=config)
+        return redirect(url_for('settings_page'))
+    
+    categories = Category.query.order_by(Category.name).all()
+    return render_template('settings.html', current_config=config, categories=categories)
+
+@app.route('/category/add', methods=['POST'])
+def add_category():
+    name = request.form.get('name')
+    parent_id = request.form.get('parent_id')
+    if name:
+        colors = ['#FEE2E2', '#FEF3C7', '#D1FAE5', '#DBEAFE', '#E0E7FF', '#F3E8FF']
+        new_category = Category(name=name, color=random.choice(colors))
+        if parent_id and parent_id.isdigit():
+            new_category.parent_id = int(parent_id)
+        db.session.add(new_category)
+        db.session.commit()
+    return redirect(url_for('settings_page'))
+
+@app.route('/category/delete/<int:id>', methods=['POST'])
+def delete_category(id):
+    category = Category.query.get_or_404(id)
+    # Reassign children to the parent of the deleted category, or make them top-level
+    for child in category.children:
+        child.parent_id = category.parent_id
+    db.session.delete(category)
+    db.session.commit()
+    return redirect(url_for('settings_page'))
 
 @app.route('/get/article/<int:article_id>')
 def get_article(article_id):
@@ -139,26 +161,16 @@ def get_article(article_id):
     return jsonify({
         'id': article.id, 'title': article.title, 'content': article.content,
         'notes': article.notes, 'references': article.references, 'tags': article.tags,
-        'category': article.category.name
+        'category_id': article.category.id
     })
-
-def get_or_create_category(name):
-    """Gets a category by name or creates it with a random color if it doesn't exist."""
-    category = Category.query.filter_by(name=name).first()
-    if not category:
-        colors = ['#FEE2E2', '#FEF3C7', '#D1FAE5', '#DBEAFE', '#E0E7FF', '#F3E8FF']
-        category = Category(name=name, color=random.choice(colors))
-        db.session.add(category)
-    return category
 
 @app.route('/edit/article/<int:article_id>', methods=['POST'])
 def edit_article(article_id):
-    """Handles editing a single article."""
     article = Article.query.get_or_404(article_id)
     data = request.get_json()
     
     article.title = data['title']
-    article.category = get_or_create_category(data['category'])
+    article.category_id = data['category_id']
     article.notes = data['notes']
     article.references = data['references']
     article.tags = data['tags']
@@ -170,8 +182,6 @@ def edit_article(article_id):
 def ask():
     question = request.get_json().get('question')
     if not question: return jsonify({"error": "No question"}), 400
-    
-    # --- FIX: Isolate API calls so one failure doesn't stop others ---
     results = {
         "gemini": query_gemini(question),
         "google": query_google_search(question),
@@ -183,35 +193,25 @@ def ask():
 def synthesize_and_save():
     try:
         data = request.get_json()
-        if not all(k in data for k in ['title', 'category', 'texts']):
+        if not all(k in data for k in ['title', 'category_id', 'texts']):
             return jsonify({"error": "Missing required fields"}), 400
 
-        # --- FIX: More robust synthesis logic ---
         synthesized_content = ""
         if len(data['texts']) == 1:
-            # If only one item is selected, no need to synthesize.
             synthesized_content = data['texts'][0]
         elif len(data['texts']) > 1:
-            # If multiple items, try to synthesize with Gemini.
             info_block = "\n\n---\n\n".join(data['texts'])
             synthesis_prompt = f"Synthesize the following information into a coherent article titled '{data['title']}':\n\n{info_block}"
-            
             gemini_result = query_gemini(synthesis_prompt)
-            if not gemini_result or gemini_result.startswith("Error:"):
-                # Fallback if Gemini fails: just join the texts.
-                synthesized_content = info_block
-            else:
-                synthesized_content = gemini_result
+            synthesized_content = gemini_result if not gemini_result.startswith("Error:") else info_block
         
-        if not synthesized_content:
-            return jsonify({"error": "No content to save."}), 400
+        if not synthesized_content: return jsonify({"error": "No content to save."}), 400
 
         new_article = Article(
             title=data['title'], content=synthesized_content, notes=data.get('notes'),
             references=data.get('references'), tags=data.get('tags'), 
-            category=get_or_create_category(data['category'])
+            category_id=data['category_id']
         )
-        
         db.session.add(new_article)
         db.session.commit()
         return jsonify({"success": True})
@@ -222,30 +222,22 @@ def synthesize_and_save():
 
 @app.route('/bulk_action', methods=['POST'])
 def bulk_action():
-    """Handles bulk deleting or updating articles."""
     data = request.get_json()
-    action = data.get('action')
-    ids = data.get('ids')
-    if not all([action, ids]):
-        return jsonify({"error": "Missing action or IDs"}), 400
+    action, ids = data.get('action'), data.get('ids')
+    if not all([action, ids]): return jsonify({"error": "Missing action or IDs"}), 400
     
     articles = Article.query.filter(Article.id.in_(ids)).all()
-
     if action == 'delete':
-        for article in articles:
-            db.session.delete(article)
+        for article in articles: db.session.delete(article)
     elif action == 'update':
         update_data = data.get('data', {})
         for article in articles:
-            if update_data.get('notes'):
-                article.notes = (article.notes or '') + '\n' + update_data['notes']
-            if update_data.get('references'):
-                article.references = (article.references or '') + '\n' + update_data['references']
+            if update_data.get('notes'): article.notes = (article.notes or '') + '\n' + update_data['notes']
+            if update_data.get('references'): article.references = (article.references or '') + '\n' + update_data['references']
             if update_data.get('tags'):
-                existing_tags = set(t.strip() for t in (article.tags or '').split(',') if t.strip())
-                new_tags = set(t.strip() for t in update_data['tags'].split(',') if t.strip())
-                article.tags = ', '.join(sorted(existing_tags.union(new_tags)))
-
+                existing = set(t.strip() for t in (article.tags or '').split(',') if t.strip())
+                new = set(t.strip() for t in update_data['tags'].split(',') if t.strip())
+                article.tags = ', '.join(sorted(existing.union(new)))
     db.session.commit()
     return jsonify({"success": True})
 
