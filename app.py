@@ -2,18 +2,23 @@ import os
 import json
 import random
 import traceback
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from functools import wraps
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import desc, or_
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+from requests_oauthlib import OAuth2Session
 
 # --- APP SETUP & CONFIGURATION ---
 
 app = Flask(__name__)
-
-# Configure the database
+app.config['SECRET_KEY'] = os.urandom(24)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///kb.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
 
 # --- CONFIG FILE HANDLING ---
 
@@ -22,14 +27,43 @@ CONFIG_FILE = 'config.json'
 def load_config():
     if os.path.exists(CONFIG_FILE):
         with open(CONFIG_FILE, 'r') as f: return json.load(f)
-    return {"GEMINI_API_KEY": "", "GOOGLE_API_KEY": "", "SEARCH_ENGINE_ID": "", "OPENAI_API_KEY": ""}
+    return {
+        "GEMINI_API_KEY": "", "GOOGLE_API_KEY": "", "SEARCH_ENGINE_ID": "", "OPENAI_API_KEY": "",
+        "GOOGLE_CLIENT_ID": "", "GOOGLE_CLIENT_SECRET": "", "DEBUG_MODE": False
+    }
 
 def save_config(new_config):
     with open(CONFIG_FILE, 'w') as f: json.dump(new_config, f, indent=4)
 
 config = load_config()
 
-# --- DATABASE MODELS (RENAMED CATEGORY TO GROUP) ---
+# --- DATABASE MODELS ---
+
+roles_users = db.Table('roles_users',
+    db.Column('user_id', db.Integer(), db.ForeignKey('user.id')),
+    db.Column('role_id', db.Integer(), db.ForeignKey('role.id'))
+)
+
+class Role(db.Model):
+    id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(80), unique=True)
+    # Permissions
+    is_admin = db.Column(db.Boolean, default=False)
+    can_add_kb = db.Column(db.Boolean, default=False)
+    can_edit_kb = db.Column(db.Boolean, default=False)
+    can_delete_kb = db.Column(db.Boolean, default=False)
+
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=True)
+    google_id = db.Column(db.String(100), unique=True, nullable=True)
+    name = db.Column(db.String(100), nullable=True)
+    email = db.Column(db.String(100), unique=True, nullable=True)
+    roles = db.relationship('Role', secondary=roles_users, backref=db.backref('users', lazy='dynamic'))
+
+    def has_permission(self, permission_name):
+        return any(getattr(role, permission_name, False) for role in self.roles)
 
 class Group(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -48,15 +82,25 @@ class Article(db.Model):
     tags = db.Column(db.String(255), nullable=True)
     group_id = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=False)
 
-# --- API & LOCAL SEARCH HELPER FUNCTIONS ---
+# --- LOGIN & SESSION MANAGEMENT ---
 
-def query_local_kb(search_term):
-    """Searches the local database for relevant articles."""
-    search_like = f"%{search_term}%"
-    articles = Article.query.filter(
-        or_(Article.title.ilike(search_like), Article.content.ilike(search_like), Article.tags.ilike(search_like))
-    ).limit(3).all()
-    return [{'id': a.id, 'title': a.title, 'content': a.content} for a in articles]
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+def permission_required(permission):
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if not current_user.is_authenticated or not current_user.has_permission(permission):
+                flash("You do not have permission to perform this action.")
+                return redirect(request.referrer or url_for('index'))
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+# --- API & LOCAL SEARCH HELPER FUNCTIONS ---
+# (query_gemini, query_google_search, query_chatgpt, query_local_kb remain the same)
 
 def query_gemini(prompt):
     api_key = config.get('GEMINI_API_KEY')
@@ -89,9 +133,80 @@ def query_chatgpt(prompt):
         return response.choices[0].message.content
     except Exception as e: return f"Error: {e}"
 
+def query_local_kb(search_term):
+    """Searches the local database for relevant articles."""
+    search_like = f"%{search_term}%"
+    articles = Article.query.filter(
+        or_(Article.title.ilike(search_like), Article.content.ilike(search_like), Article.tags.ilike(search_like))
+    ).limit(3).all()
+    return [{'id': a.id, 'title': a.title, 'content': a.content} for a in articles]
+
 # --- FLASK ROUTES ---
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        user = User.query.filter_by(username=username).first()
+        if user and user.password_hash and check_password_hash(user.password_hash, password):
+            login_user(user)
+            return redirect(url_for('index'))
+        flash('Invalid username or password')
+    
+    debug_url = ""
+    if config.get('DEBUG_MODE') and config.get('GOOGLE_CLIENT_ID'):
+        google = OAuth2Session(config['GOOGLE_CLIENT_ID'], redirect_uri=url_for('google_callback', _external=True), scope=["openid", "email", "profile"])
+        authorization_url, _ = google.authorization_url('https://accounts.google.com/o/oauth2/v2/auth', access_type="offline", prompt="select_account")
+        debug_url = authorization_url
+
+    return render_template('login.html', debug_url=debug_url)
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
+@app.route('/google_login')
+def google_login():
+    if not config.get('GOOGLE_CLIENT_ID') or not config.get('GOOGLE_CLIENT_SECRET'):
+        flash('Google SSO is not configured.')
+        return redirect(url_for('login'))
+    
+    scheme = request.headers.get('X-Forwarded-Proto', 'http')
+    redirect_uri = url_for('google_callback', _external=True, _scheme=scheme)
+
+    google = OAuth2Session(config['GOOGLE_CLIENT_ID'], redirect_uri=redirect_uri, scope=["openid", "email", "profile"])
+    authorization_url, state = google.authorization_url('https://accounts.google.com/o/oauth2/v2/auth', access_type="offline", prompt="select_account")
+    session['oauth_state'] = state
+    return redirect(authorization_url)
+
+@app.route('/google_callback')
+def google_callback():
+    scheme = request.headers.get('X-Forwarded-Proto', 'http')
+    redirect_uri = url_for('google_callback', _external=True, _scheme=scheme)
+    
+    google = OAuth2Session(config['GOOGLE_CLIENT_ID'], state=session.get('oauth_state'), redirect_uri=redirect_uri)
+    token = google.fetch_token('https://oauth2.googleapis.com/token', client_secret=config['GOOGLE_CLIENT_SECRET'], authorization_response=request.url)
+    
+    user_info = google.get('https://www.googleapis.com/oauth2/v1/userinfo').json()
+    
+    user = User.query.filter_by(google_id=user_info['id']).first()
+    if not user:
+        user = User(google_id=user_info['id'], name=user_info.get('name'), email=user_info.get('email'), username=user_info.get('email'))
+        # Assign default 'User' role to new SSO users
+        user_role = Role.query.filter_by(name='User').first()
+        if user_role: user.roles.append(user_role)
+        db.session.add(user)
+        db.session.commit()
+    
+    login_user(user)
+    return redirect(url_for('index'))
+
+
 @app.route('/')
+@login_required
 def index():
     search_term = request.args.get('search', '')
     sort_by = request.args.get('sort', 'group')
@@ -124,23 +239,107 @@ def index():
                              search_term=search_term, sort_by=sort_by, filter_group_id=filter_group_id, filter_tag=filter_tag)
 
 @app.route('/settings', methods=['GET', 'POST'])
+@login_required
+@permission_required('is_admin')
 def settings_page():
     if request.method == 'POST':
         global config
-        new_config = {
+        config = {
             "GEMINI_API_KEY": request.form.get('gemini_api_key', ''),
             "GOOGLE_API_KEY": request.form.get('google_api_key', ''),
             "SEARCH_ENGINE_ID": request.form.get('search_engine_id', ''),
-            "OPENAI_API_KEY": request.form.get('openai_api_key', '')
+            "OPENAI_API_KEY": request.form.get('openai_api_key', ''),
+            "GOOGLE_CLIENT_ID": request.form.get('google_client_id', ''),
+            "GOOGLE_CLIENT_SECRET": request.form.get('google_client_secret', ''),
+            "DEBUG_MODE": 'debug_mode' in request.form
         }
-        save_config(new_config)
-        config = new_config
+        save_config(config)
         return redirect(url_for('settings_page'))
     
     groups = Group.query.order_by(Group.name).all()
-    return render_template('settings.html', current_config=config, groups=groups)
+    roles = Role.query.all()
+    return render_template('settings.html', current_config=config, groups=groups, roles=roles)
+
+@app.route('/user_management')
+@login_required
+@permission_required('is_admin')
+def user_management():
+    users = User.query.all()
+    roles = Role.query.all()
+    return render_template('user_management.html', users=users, roles=roles)
+
+@app.route('/user/add', methods=['POST'])
+@login_required
+@permission_required('is_admin')
+def add_user():
+    username = request.form.get('username')
+    password = request.form.get('password')
+    if username and password and not User.query.filter_by(username=username).first():
+        hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
+        new_user = User(username=username, password_hash=hashed_password, name=username)
+        user_role = Role.query.filter_by(name='User').first()
+        if user_role: new_user.roles.append(user_role)
+        db.session.add(new_user)
+        db.session.commit()
+    return redirect(url_for('user_management'))
+
+@app.route('/user/delete/<int:id>', methods=['POST'])
+@login_required
+@permission_required('is_admin')
+def delete_user(id):
+    user = User.query.get_or_404(id)
+    if user.username == 'admin': # Prevent admin deletion
+        flash("Cannot delete the default admin user.")
+        return redirect(url_for('user_management'))
+    db.session.delete(user)
+    db.session.commit()
+    return redirect(url_for('user_management'))
+
+@app.route('/user/assign_role/<int:user_id>/<int:role_id>', methods=['POST'])
+@login_required
+@permission_required('is_admin')
+def assign_role(user_id, role_id):
+    user = User.query.get_or_404(user_id)
+    role = Role.query.get_or_404(role_id)
+    if role not in user.roles:
+        user.roles.append(role)
+        db.session.commit()
+    return redirect(url_for('user_management'))
+
+@app.route('/user/remove_role/<int:user_id>/<int:role_id>', methods=['POST'])
+@login_required
+@permission_required('is_admin')
+def remove_role(user_id, role_id):
+    user = User.query.get_or_404(user_id)
+    role = Role.query.get_or_404(role_id)
+    if user.username == 'admin' and role.name == 'Admin':
+        flash("Cannot remove Admin role from the default admin user.")
+        return redirect(url_for('user_management'))
+    if role in user.roles:
+        user.roles.remove(role)
+        db.session.commit()
+    return redirect(url_for('user_management'))
+
+@app.route('/role/add', methods=['POST'])
+@login_required
+@permission_required('is_admin')
+def add_role():
+    name = request.form.get('name')
+    if name and not Role.query.filter_by(name=name).first():
+        new_role = Role(
+            name=name,
+            is_admin='is_admin' in request.form,
+            can_add_kb='can_add_kb' in request.form,
+            can_edit_kb='can_edit_kb' in request.form,
+            can_delete_kb='can_delete_kb' in request.form
+        )
+        db.session.add(new_role)
+        db.session.commit()
+    return redirect(url_for('settings_page'))
 
 @app.route('/group/add', methods=['POST'])
+@login_required
+@permission_required('is_admin')
 def add_group():
     name = request.form.get('name')
     parent_id = request.form.get('parent_id')
@@ -154,6 +353,8 @@ def add_group():
     return redirect(url_for('settings_page'))
 
 @app.route('/group/delete/<int:id>', methods=['POST'])
+@login_required
+@permission_required('is_admin')
 def delete_group(id):
     group = Group.query.get_or_404(id)
     for child in group.children:
@@ -163,6 +364,7 @@ def delete_group(id):
     return redirect(url_for('settings_page'))
 
 @app.route('/get/article/<int:article_id>')
+@login_required
 def get_article(article_id):
     article = Article.query.get_or_404(article_id)
     return jsonify({
@@ -172,6 +374,8 @@ def get_article(article_id):
     })
 
 @app.route('/edit/article/<int:article_id>', methods=['POST'])
+@login_required
+@permission_required('can_edit_kb')
 def edit_article(article_id):
     article = Article.query.get_or_404(article_id)
     data = request.get_json()
@@ -186,6 +390,7 @@ def edit_article(article_id):
     return jsonify({"success": True, "message": "Article updated."})
 
 @app.route('/ask', methods=['POST'])
+@login_required
 def ask():
     question = request.get_json().get('question')
     if not question: return jsonify({"error": "No question"}), 400
@@ -198,6 +403,8 @@ def ask():
     })
 
 @app.route('/synthesize', methods=['POST'])
+@login_required
+@permission_required('can_add_kb')
 def synthesize_and_save():
     try:
         data = request.get_json()
@@ -229,11 +436,17 @@ def synthesize_and_save():
         return jsonify({"error": f"An unexpected server error occurred: {e}"}), 500
 
 @app.route('/bulk_action', methods=['POST'])
+@login_required
 def bulk_action():
     data = request.get_json()
     action, ids = data.get('action'), data.get('ids')
     if not all([action, ids]): return jsonify({"error": "Missing action or IDs"}), 400
     
+    if action == 'delete' and not current_user.has_permission('can_delete_kb'):
+        return jsonify({"error": "Permission denied"}), 403
+    if action == 'update' and not current_user.has_permission('can_edit_kb'):
+        return jsonify({"error": "Permission denied"}), 403
+
     articles = Article.query.filter(Article.id.in_(ids)).all()
     if action == 'delete':
         for article in articles: db.session.delete(article)
@@ -254,4 +467,21 @@ def bulk_action():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+        # Create default roles and admin user if they don't exist
+        if not Role.query.filter_by(name='Admin').first():
+            db.session.add(Role(name='Admin', is_admin=True, can_add_kb=True, can_edit_kb=True, can_delete_kb=True))
+        if not Role.query.filter_by(name='User').first():
+            db.session.add(Role(name='User', can_add_kb=True, can_edit_kb=True))
+        
+        if not User.query.filter_by(username='admin').first():
+            hashed_password = generate_password_hash('admin', method='pbkdf2:sha256')
+            admin_user = User(username='admin', password_hash=hashed_password, name='Admin')
+            admin_role = Role.query.filter_by(name='Admin').first()
+            user_role = Role.query.filter_by(name='User').first()
+            admin_user.roles.append(admin_role)
+            admin_user.roles.append(user_role)
+            db.session.add(admin_user)
+        
+        db.session.commit()
+
     app.run(host='0.0.0.0', port=5050, debug=True)

@@ -41,7 +41,7 @@
             <div class="h-16 flex items-center px-6 border-b border-gray-200">
                 <a href="{{ url_for('index') }}" class="flex items-center">
                     <svg class="h-8 w-8 text-indigo-600" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    <span class="ml-3 text-lg font-semibold text-gray-800">AI Knowledge Base </span>
+                    <span class="ml-3 text-lg font-semibold text-gray-800">KB Project</span>
                 </a>
             </div>
             
@@ -81,8 +81,12 @@
                         </label>
                     </div>
                     <div class="flex gap-2">
+                        {% if current_user.has_permission('can_edit_kb') %}
                         <button id="bulk-update-btn" class="flex-1 text-xs bg-blue-500 text-white px-2 py-1 rounded-md hover:bg-blue-600">Update</button>
+                        {% endif %}
+                        {% if current_user.has_permission('can_delete_kb') %}
                         <button id="bulk-delete-btn" class="flex-1 text-xs bg-red-500 text-white px-2 py-1 rounded-md hover:bg-red-600">Delete</button>
+                        {% endif %}
                     </div>
                 </div>
                 
@@ -99,9 +103,11 @@
                         {% for article in items %}
                         <div class="p-3 rounded-lg shadow-sm relative group" style="background-color: {{ article.group.color }};">
                             <div class="absolute top-2 right-2 flex items-center">
+                                 {% if current_user.has_permission('can_edit_kb') %}
                                  <button class="edit-article-btn p-1 text-gray-500 hover:text-blue-700 opacity-0 group-hover:opacity-100 transition-opacity" data-id="{{ article.id }}">
                                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" /></svg>
                                 </button>
+                                {% endif %}
                                 <input type="checkbox" class="h-4 w-4 rounded border-gray-400 text-indigo-600 focus:ring-indigo-500 article-checkbox ml-1" data-id="{{ article.id }}">
                             </div>
                             <a href="#" class="block font-semibold text-gray-800 hover:text-black article-link" data-id="{{ article.id }}">{{ article.title }}</a>
@@ -119,12 +125,19 @@
         <!-- Main Content -->
         <main class="flex-1 flex flex-col overflow-hidden bg-gray-50 relative">
             <header class="h-16 flex items-center justify-end px-8 border-b border-gray-200 bg-white z-10">
-                <a href="{{ url_for('settings_page') }}" class="p-2 text-gray-500 hover:text-indigo-600 rounded-full hover:bg-gray-100 transition-colors">
-                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-1.007 1.11-1.226a2.25 2.25 0 012.58 1.226l.114.683c.137.82.715 1.51 1.505 1.87l.79.395c.837.418 1.258 1.487 1.018 2.45l-.523 1.942a2.25 2.25 0 01-1.342 1.616.25.25 0 00-.056.09l-.443.886c-.42.84-.172 1.86.52 2.445l.698.582c.85.71 1.998.63 2.807-.184l.158-.158a2.25 2.25 0 013.182 0l.53.53a2.25 2.25 0 010 3.182l-.158.158c-.81.81-1.956.89-2.807.184l-.698-.582c-.692-.585-1.626-.755-2.445-.52l-.886.443a.25.25 0 00-.09.056 2.25 2.25 0 01-1.616 1.342l-1.942.523c-.962.24-1.998-.18-2.45-1.018l-.395-.79a2.25 2.25 0 00-1.87-1.505l-.683-.114a2.25 2.25 0 01-1.226-2.58l.114-.683c.26-1.543-.826-3.023-2.38-3.32l-.79-.158a2.25 2.25 0 01-1.98-2.288v-.04c0-1.26.95-2.322 2.18-2.496l.79-.158c1.554-.3 2.64-1.777 2.38-3.32l-.114-.683z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                </a>
+                 <div class="flex items-center gap-2">
+                    {% if current_user.has_permission('is_admin') %}
+                    <a href="{{ url_for('user_management') }}" class="p-2 text-gray-500 hover:text-indigo-600 rounded-full hover:bg-gray-100 transition-colors" title="User Management">
+                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.071M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-4.663M15 19.128L18 18.5" /></svg>
+                    </a>
+                    <a href="{{ url_for('settings_page') }}" class="p-2 text-gray-500 hover:text-indigo-600 rounded-full hover:bg-gray-100 transition-colors" title="Settings">
+                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-1.007 1.11-1.226a2.25 2.25 0 012.58 1.226l.114.683c.137.82.715 1.51 1.505 1.87l.79.395c.837.418 1.258 1.487 1.018 2.45l-.523 1.942a2.25 2.25 0 01-1.342 1.616.25.25 0 00-.056.09l-.443.886c-.42.84-.172 1.86.52 2.445l.698.582c.85.71 1.998.63 2.807-.184l.158-.158a2.25 2.25 0 013.182 0l.53.53a2.25 2.25 0 010 3.182l-.158.158c-.81.81-1.956.89-2.807.184l-.698-.582c-.692-.585-1.626-.755-2.445-.52l-.886.443a.25.25 0 00-.09.056 2.25 2.25 0 01-1.616 1.342l-1.942.523c-.962.24-1.998-.18-2.45-1.018l-.395-.79a2.25 2.25 0 00-1.87-1.505l-.683-.114a2.25 2.25 0 01-1.226-2.58l.114-.683c.26-1.543-.826-3.023-2.38-3.32l-.79-.158a2.25 2.25 0 01-1.98-2.288v-.04c0-1.26.95-2.322 2.18-2.496l.79-.158c1.554-.3 2.64-1.777 2.38-3.32l-.114-.683z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    </a>
+                    {% endif %}
+                 </div>
             </header>
             <div id="results-area" class="flex-1 flex flex-col gap-6 p-6 overflow-y-auto pb-24">
                 <div class="text-center text-gray-500 p-8 glass-pane rounded-xl flex-1 flex flex-col justify-center">
@@ -141,9 +154,11 @@
                         </button>
                     </div>
                 </form>
+                {% if current_user.has_permission('can_add_kb') %}
                 <button id="start-synthesis-btn" class="hidden flex-shrink-0 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-5 rounded-full shadow-lg transition-transform transform hover:scale-105">
                     <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 </button>
+                {% endif %}
             </div>
         </main>
     </div>

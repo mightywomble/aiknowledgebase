@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - AI Knowledge Base</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+    <div class="flex h-screen bg-white">
+        <!-- Sidebar -->
+        <aside class="w-72 bg-white border-r border-gray-200 flex flex-col shrink-0">
+            <div class="h-16 flex items-center px-6 border-b border-gray-200">
+                 <a href="{{ url_for('index') }}" class="flex items-center">
+                    <svg class="h-8 w-8 text-indigo-600" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <span class="ml-3 text-lg font-semibold text-gray-800">KB Project</span>
+                </a>
+            </div>
+            <nav class="flex-1 px-4 py-6 space-y-2">
+                <a href="{{ url_for('index') }}" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955a1.5 1.5 0 012.122 0l8.954 8.955M21 12v9a2 2 0 01-2 2H5a2 2 0 01-2-2v-9M15 21v-4.5A2.5 2.5 0 0012.5 14h-1A2.5 2.5 0 009 16.5V21" /></svg>
+                    <span class="ml-3">Home</span>
+                </a>
+                <a href="{{ url_for('settings_page') }}" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-1.007 1.11-1.226a2.25 2.25 0 012.58 1.226l.114.683c.137.82.715 1.51 1.505 1.87l.79.395c.837.418 1.258 1.487 1.018 2.45l-.523 1.942a2.25 2.25 0 01-1.342 1.616.25.25 0 00-.056.09l-.443.886c-.42.84-.172 1.86.52 2.445l.698.582c.85.71 1.998.63 2.807-.184l.158-.158a2.25 2.25 0 013.182 0l.53.53a2.25 2.25 0 010 3.182l-.158.158c-.81.81-1.956.89-2.807.184l-.698-.582c-.692-.585-1.626-.755-2.445-.52l-.886.443a.25.25 0 00-.09.056 2.25 2.25 0 01-1.616 1.342l-1.942.523c-.962.24-1.998-.18-2.45-1.018l-.395-.79a2.25 2.25 0 00-1.87-1.505l-.683-.114a2.25 2.25 0 01-1.226-2.58l.114-.683c.26-1.543-.826-3.023-2.38-3.32l-.79-.158a2.25 2.25 0 01-1.98-2.288v-.04c0-1.26.95-2.322 2.18-2.496l.79-.158c1.554-.3 2.64-1.777 2.38-3.32l-.114-.683z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    <span class="ml-3">Settings</span>
+                </a>
+                 <a href="{{ url_for('user_management') }}" class="flex items-center px-4 py-2 text-gray-900 bg-gray-200 rounded-lg">
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.071M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-4.663M15 19.128L18 18.5" /></svg>
+                    <span class="ml-3">Users</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-8 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">User Management</h1>
+                <p class="mt-1 text-gray-600">Add new local users and manage roles.</p>
+                <form action="{{ url_for('add_user') }}" method="POST" class="mt-8 max-w-md p-4 bg-gray-50 rounded-lg border">
+                    <h3 class="text-lg font-medium mb-4">Add New Local User</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="username" class="block text-sm font-medium">Username</label>
+                            <input type="text" name="username" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                        </div>
+                        <div>
+                            <label for="password" class="block text-sm font-medium">Password</label>
+                            <input type="password" name="password" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                        </div>
+                        <button type="submit" class="rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500">Add User</button>
+                    </div>
+                </form>
+            </div>
+            <div>
+                <h3 class="text-lg font-medium mb-4">Existing Users</h3>
+                <div class="space-y-4">
+                    {% for user in users %}
+                    <div class="p-4 bg-white rounded-lg border">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="font-semibold">{{ user.name or user.username }}</p>
+                                <p class="text-sm text-gray-500">{{ user.email or 'Local Account' }}</p>
+                            </div>
+                            {% if user.username != 'admin' %}
+                            <form action="{{ url_for('delete_user', id=user.id) }}" method="POST" onsubmit="return confirm('Are you sure?');">
+                                <button type="submit" class="text-red-500 hover:text-red-700 text-sm">Delete</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                        <div class="mt-4 border-t pt-4">
+                            <p class="text-sm font-medium mb-2">Roles</p>
+                            <div class="flex flex-wrap gap-2">
+                                {% for role in roles %}
+                                    {% if role in user.roles %}
+                                        <form action="{{ url_for('remove_role', user_id=user.id, role_id=role.id) }}" method="POST">
+                                            <button type="submit" class="px-2 py-1 text-xs bg-indigo-500 text-white rounded-full">{{ role.name }} &times;</button>
+                                        </form>
+                                    {% else %}
+                                         <form action="{{ url_for('assign_role', user_id=user.id, role_id=role.id) }}" method="POST">
+                                            <button type="submit" class="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300">{{ role.name }} +</button>
+                                        </form>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

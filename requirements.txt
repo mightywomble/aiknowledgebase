@@ -1,6 +1,10 @@
 Flask
 Flask-SQLAlchemy
+Flask-Login
+requests-oauthlib
 google-generativeai
 google-api-python-client
 openai
 requests
+waitress
+werkzeug
