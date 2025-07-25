@@ -156,7 +156,9 @@ def login():
     
     debug_url = ""
     if config.get('DEBUG_MODE') and config.get('GOOGLE_CLIENT_ID'):
-        google = OAuth2Session(config['GOOGLE_CLIENT_ID'], redirect_uri=url_for('google_callback', _external=True), scope=["openid", "email", "profile"])
+        scheme = request.headers.get('X-Forwarded-Proto', 'http')
+        redirect_uri = url_for('google_callback', _external=True, _scheme=scheme)
+        google = OAuth2Session(config['GOOGLE_CLIENT_ID'], redirect_uri=redirect_uri, scope=["openid", "email", "profile"])
         authorization_url, _ = google.authorization_url('https://accounts.google.com/o/oauth2/v2/auth', access_type="offline", prompt="select_account")
         debug_url = authorization_url
 
