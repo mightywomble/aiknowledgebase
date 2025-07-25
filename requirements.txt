@@ -1,0 +1,6 @@
+Flask
+Flask-SQLAlchemy
+google-generativeai
+google-api-python-client
+openai
+requests
