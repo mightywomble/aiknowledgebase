@@ -79,20 +79,29 @@
                     </div>
                 </div>
                 
-                <div class="grid grid-cols-1 gap-3">
+                <div>
                 {% for group_name, items in articles|groupby('group.name') %}
-                    <h3 class="text-md font-bold text-gray-600 px-2 pt-4 col-span-1">{{ group_name }}</h3>
-                    {% for article in items %}
-                    <div class="p-3 rounded-lg shadow-sm relative group" style="background-color: {{ article.group.color }};">
-                        <div class="absolute top-2 right-2 flex items-center">
-                             <button class="edit-article-btn p-1 text-gray-500 hover:text-blue-700 opacity-0 group-hover:opacity-100 transition-opacity" data-id="{{ article.id }}">
-                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" /></svg>
-                            </button>
-                            <input type="checkbox" class="h-4 w-4 rounded border-gray-400 text-indigo-600 focus:ring-indigo-500 article-checkbox ml-1" data-id="{{ article.id }}">
+                    <div>
+                        <button class="w-full flex items-center justify-between text-left text-md font-bold text-gray-600 px-2 py-2 rounded-md hover:bg-gray-100 group-toggle">
+                            <span>{{ group_name }}</span>
+                            <svg class="h-5 w-5 transform transition-transform chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                        <div class="pl-2 pt-2 grid grid-cols-1 gap-3 article-list">
+                        {% for article in items %}
+                        <div class="p-3 rounded-lg shadow-sm relative group" style="background-color: {{ article.group.color }};">
+                            <div class="absolute top-2 right-2 flex items-center">
+                                 <button class="edit-article-btn p-1 text-gray-500 hover:text-blue-700 opacity-0 group-hover:opacity-100 transition-opacity" data-id="{{ article.id }}">
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" /></svg>
+                                </button>
+                                <input type="checkbox" class="h-4 w-4 rounded border-gray-400 text-indigo-600 focus:ring-indigo-500 article-checkbox ml-1" data-id="{{ article.id }}">
+                            </div>
+                            <a href="#" class="block font-semibold text-gray-800 hover:text-black article-link" data-id="{{ article.id }}">{{ article.title }}</a>
                         </div>
-                        <a href="#" class="block font-semibold text-gray-800 hover:text-black article-link" data-id="{{ article.id }}">{{ article.title }}</a>
+                        {% endfor %}
+                        </div>
                     </div>
-                    {% endfor %}
                 {% else %}
                     <p class="px-4 text-sm text-gray-500">No articles found.</p>
                 {% endfor %}
@@ -101,29 +110,30 @@
         </aside>
 
         <!-- Main Content -->
-        <main class="flex-1 flex flex-col overflow-hidden bg-gray-50">
-            <header class="h-16 flex items-center justify-between px-8 border-b border-gray-200 bg-white z-10">
-                <div class="flex-1"></div> <!-- Left Spacer -->
-                <form id="ask-form" class="w-full max-w-2xl">
-                    <div class="relative">
-                        <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd" /></svg>
-                        <input type="text" id="question-input" class="w-full pl-10 pr-4 py-2 bg-gray-100 border-transparent rounded-lg focus:bg-white focus:border-indigo-300" placeholder="Ask a question to get started...">
-                    </div>
-                </form>
-                <div class="flex-1 flex justify-end">
-                    <a href="{{ url_for('settings_page') }}" class="p-2 text-gray-500 hover:text-indigo-600 rounded-full hover:bg-gray-100 transition-colors">
-                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-1.007 1.11-1.226a2.25 2.25 0 012.58 1.226l.114.683c.137.82.715 1.51 1.505 1.87l.79.395c.837.418 1.258 1.487 1.018 2.45l-.523 1.942a2.25 2.25 0 01-1.342 1.616.25.25 0 00-.056.09l-.443.886c-.42.84-.172 1.86.52 2.445l.698.582c.85.71 1.998.63 2.807-.184l.158-.158a2.25 2.25 0 013.182 0l.53.53a2.25 2.25 0 010 3.182l-.158.158c-.81.81-1.956.89-2.807.184l-.698-.582c-.692-.585-1.626-.755-2.445-.52l-.886.443a.25.25 0 00-.09.056 2.25 2.25 0 01-1.616 1.342l-1.942.523c-.962.24-1.998-.18-2.45-1.018l-.395-.79a2.25 2.25 0 00-1.87-1.505l-.683-.114a2.25 2.25 0 01-1.226-2.58l.114-.683c.26-1.543-.826-3.023-2.38-3.32l-.79-.158a2.25 2.25 0 01-1.98-2.288v-.04c0-1.26.95-2.322 2.18-2.496l.79-.158c1.554-.3 2.64-1.777 2.38-3.32l-.114-.683z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                    </a>
-                </div>
+        <main class="flex-1 flex flex-col overflow-hidden bg-gray-50 relative">
+            <header class="h-16 flex items-center justify-end px-8 border-b border-gray-200 bg-white z-10">
+                <a href="{{ url_for('settings_page') }}" class="p-2 text-gray-500 hover:text-indigo-600 rounded-full hover:bg-gray-100 transition-colors">
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-1.007 1.11-1.226a2.25 2.25 0 012.58 1.226l.114.683c.137.82.715 1.51 1.505 1.87l.79.395c.837.418 1.258 1.487 1.018 2.45l-.523 1.942a2.25 2.25 0 01-1.342 1.616.25.25 0 00-.056.09l-.443.886c-.42.84-.172 1.86.52 2.445l.698.582c.85.71 1.998.63 2.807-.184l.158-.158a2.25 2.25 0 013.182 0l.53.53a2.25 2.25 0 010 3.182l-.158.158c-.81.81-1.956.89-2.807.184l-.698-.582c-.692-.585-1.626-.755-2.445-.52l-.886.443a.25.25 0 00-.09.056 2.25 2.25 0 01-1.616 1.342l-1.942.523c-.962.24-1.998-.18-2.45-1.018l-.395-.79a2.25 2.25 0 00-1.87-1.505l-.683-.114a2.25 2.25 0 01-1.226-2.58l.114-.683c.26-1.543-.826-3.023-2.38-3.32l-.79-.158a2.25 2.25 0 01-1.98-2.288v-.04c0-1.26.95-2.322 2.18-2.496l.79-.158c1.554-.3 2.64-1.777 2.38-3.32l-.114-.683z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                </a>
             </header>
-            <div id="results-area" class="flex-1 flex flex-col gap-6 p-6 overflow-y-auto">
+            <div id="results-area" class="flex-1 flex flex-col gap-6 p-6 overflow-y-auto pb-24">
                 <div class="text-center text-gray-500 p-8 glass-pane rounded-xl flex-1 flex flex-col justify-center">
                     <h2 class="text-2xl font-bold text-gray-700">Welcome to your Knowledge Base</h2>
                     <p class="mt-2">Ask a question, or select an article from the left.</p>
                 </div>
+            </div>
+            <div class="absolute bottom-0 left-0 right-0 p-4 flex justify-center">
+                 <form id="ask-form" class="w-full max-w-2xl">
+                    <div class="relative">
+                        <input type="text" id="question-input" class="w-full pl-5 pr-12 py-3 bg-white border border-gray-300 rounded-full shadow-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition" placeholder="Ask a question to get started...">
+                        <button type="submit" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700">
+                             <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M3.105 2.289a.75.75 0 00-.826.95l1.414 4.949a.75.75 0 00.95.544l4.25-1.214a.75.75 0 01.642 1.285l-4.25 1.214a.75.75 0 00-.544.95l-1.414 4.949a.75.75 0 00.95.826L16.25 10l-13.145-7.711z" /></svg>
+                        </button>
+                    </div>
+                </form>
             </div>
         </main>
     </div>
@@ -285,6 +295,7 @@
             const articleLink = e.target.closest('.article-link');
             const editBtn = e.target.closest('.edit-article-btn');
             const checkbox = e.target.closest('.article-checkbox');
+            const groupToggle = e.target.closest('.group-toggle');
 
             if (articleLink) {
                 e.preventDefault();
@@ -296,6 +307,12 @@
             }
             if (checkbox) {
                 updateBulkActionBar();
+            }
+            if(groupToggle) {
+                const articleList = groupToggle.nextElementSibling;
+                const chevron = groupToggle.querySelector('.chevron');
+                articleList.classList.toggle('hidden');
+                chevron.classList.toggle('rotate-180');
             }
         }
 
@@ -508,7 +525,7 @@
             return `<div class="bg-white/80 p-5 rounded-lg border"><h4 class="font-bold text-lg text-blue-700">Google Search</h4><div class="mt-2">${googleItems}</div></div>`;
         }
         function escapeHTML(str) { 
-            return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+            return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&quot;').replace(/'/g, '&#039;');
         }
         function renderMarkdown(text) {
             let html = escapeHTML(text || '');
