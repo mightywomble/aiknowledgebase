@@ -143,7 +143,15 @@
     
     <div id="article-modal" class="fixed inset-0 flex items-center justify-center p-4 hidden z-50 modal-enter">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
-            <h2 id="modal-title" class="p-4 border-b text-2xl font-bold text-gray-900"></h2>
+            <div class="p-4 border-b flex justify-between items-center">
+                <h2 id="modal-title" class="text-2xl font-bold text-gray-900"></h2>
+                <div class="flex items-center gap-2">
+                    <button id="share-article-btn" class="p-2 text-gray-500 hover:text-indigo-600 rounded-full hover:bg-gray-100">
+                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 100 4.186m0-4.186a2.25 2.25 0 110 4.186m2.25-4.186a2.25 2.25 0 000-4.186m0 4.186c.331 0 .653.064.95.182m0-4.364a2.25 2.25 0 010 4.186m-9.5 0a2.25 2.25 0 000 4.186m0-4.186a2.25 2.25 0 010-4.186" /></svg>
+                    </button>
+                    <button onclick="closeModal('article-modal')" class="text-gray-400 hover:text-gray-800">&times;</button>
+                </div>
+            </div>
             <div id="modal-content" class="p-6 overflow-y-auto prose-styles"></div>
             <div class="p-4 bg-gray-50 border-t text-right rounded-b-xl">
                  <button onclick="closeModal('article-modal')" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Close</button>
@@ -215,6 +223,7 @@
             openModal('bulk-update-modal');
         });
         $('#confirm-bulk-update-btn').addEventListener('click', () => handleBulkAction('update'));
+        $('#share-article-btn').addEventListener('click', handleShareArticle);
 
         // --- Main Functions ---
         async function handleAskSubmit(e) {
@@ -327,6 +336,24 @@
             $('#modal-content').innerHTML = contentHtml;
             openModal('article-modal');
         }
+
+        async function handleShareArticle() {
+            const title = $('#modal-title').textContent;
+            const content = $('#modal-content').innerText; // Get plain text for sharing
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: title,
+                        text: `Check out this article: ${title}\n\n${content.substring(0, 200)}...`,
+                        url: window.location.href,
+                    });
+                } catch (error) {
+                    console.error('Error sharing:', error);
+                }
+            } else {
+                alert('Web Share API is not supported in your browser.');
+            }
+        }
         
         function buildGroupOptions(selectedId) {
             let html = '';
@@ -395,6 +422,8 @@
                 </div>
             `;
             $('#synthesis-modal-content').innerHTML = content;
+            
+            $('#new-title').value = $('#question-input').value;
 
             const references = Array.from(selectedCheckboxes)
                 .map(cb => cb.dataset.link)
