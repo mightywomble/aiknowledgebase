@@ -2,14 +2,17 @@ import os
 import json
 import random
 import traceback
+import zipfile
+import io
 from functools import wraps
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session, send_file
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import desc, or_
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.middleware.proxy_fix import ProxyFix
 from requests_oauthlib import OAuth2Session
+import requests
 
 # --- APP SETUP & CONFIGURATION ---
 
@@ -34,7 +37,8 @@ def load_config():
         with open(CONFIG_FILE, 'r') as f: return json.load(f)
     return {
         "GEMINI_API_KEY": "", "GOOGLE_API_KEY": "", "SEARCH_ENGINE_ID": "", "OPENAI_API_KEY": "",
-        "GITHUB_CLIENT_ID": "", "GITHUB_CLIENT_SECRET": "", "DEBUG_MODE": False
+        "GITHUB_CLIENT_ID": "", "GITHUB_CLIENT_SECRET": "", "DEBUG_MODE": False,
+        "GITHUB_BACKUP_REPO": "", "GITHUB_TOKEN": ""
     }
 
 def save_config(new_config):
@@ -248,6 +252,8 @@ def settings_page():
             "OPENAI_API_KEY": request.form.get('openai_api_key', config.get('OPENAI_API_KEY')),
             "GITHUB_CLIENT_ID": request.form.get('github_client_id', config.get('GITHUB_CLIENT_ID')),
             "GITHUB_CLIENT_SECRET": request.form.get('github_client_secret', config.get('GITHUB_CLIENT_SECRET')),
+            "GITHUB_BACKUP_REPO": request.form.get('github_backup_repo', config.get('GITHUB_BACKUP_REPO')),
+            "GITHUB_TOKEN": request.form.get('github_token', config.get('GITHUB_TOKEN')),
             "DEBUG_MODE": 'debug_mode' in request.form
         }
         save_config(updated_config)
@@ -468,6 +474,145 @@ def bulk_action():
                 existing = set(t.strip() for t in (article.tags or '').split(',') if t.strip())
                 new = set(t.strip() for t in update_data['tags'].split(',') if t.strip())
                 article.tags = ', '.join(sorted(existing.union(new)))
+    db.session.commit()
+    return jsonify({"success": True})
+
+# --- BACKUP & RESTORE ROUTES ---
+
+@app.route('/backup_restore')
+@login_required
+@permission_required('is_admin')
+def backup_restore_page():
+    return render_template('backup_restore.html')
+
+@app.route('/backup/file')
+@login_required
+@permission_required('is_admin')
+def backup_to_file():
+    memory_file = io.BytesIO()
+    with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+        # Backup articles
+        articles = Article.query.all()
+        articles_data = [{'id': a.id, 'title': a.title, 'content': a.content, 'notes': a.notes, 
+                          'references': a.references, 'tags': a.tags, 'group_id': a.group_id} for a in articles]
+        zf.writestr('articles.json', json.dumps(articles_data, indent=4))
+        
+        # Backup groups
+        groups = Group.query.all()
+        groups_data = [{'id': g.id, 'name': g.name, 'color': g.color, 'parent_id': g.parent_id} for g in groups]
+        zf.writestr('groups.json', json.dumps(groups_data, indent=4))
+        
+        # Backup config
+        zf.writestr('config.json', json.dumps(config, indent=4))
+
+    memory_file.seek(0)
+    return send_file(memory_file, download_name='kb_backup.zip', as_attachment=True)
+
+@app.route('/backup/github', methods=['POST'])
+@login_required
+@permission_required('is_admin')
+def backup_to_github():
+    repo_name = config.get('GITHUB_BACKUP_REPO')
+    token = config.get('GITHUB_TOKEN')
+    if not all([repo_name, token]):
+        return jsonify({"success": False, "error": "GitHub repo or token not configured."})
+
+    headers = {"Authorization": f"token {token}"}
+    
+    # Get articles and groups data
+    articles = Article.query.all()
+    articles_data = [{'id': a.id, 'title': a.title, 'content': a.content, 'notes': a.notes, 
+                      'references': a.references, 'tags': a.tags, 'group_id': a.group_id} for a in articles]
+    groups = Group.query.all()
+    groups_data = [{'id': g.id, 'name': g.name, 'color': g.color, 'parent_id': g.parent_id} for g in groups]
+
+    # Create file content
+    files = {
+        "articles.json": json.dumps(articles_data, indent=4),
+        "groups.json": json.dumps(groups_data, indent=4)
+    }
+
+    # Simplified: Create/update files in the repo. Assumes 'dev' branch.
+    # A more robust solution would handle branching, commits, etc.
+    for filename, content in files.items():
+        url = f"https://api.github.com/repos/{repo_name}/contents/{filename}"
+        
+        # Check if file exists to get its SHA
+        get_res = requests.get(url, headers=headers)
+        sha = None
+        if get_res.status_code == 200:
+            sha = get_res.json().get('sha')
+
+        import base64
+        content_b64 = base64.b64encode(content.encode('utf-8')).decode('utf-8')
+        
+        data = {
+            "message": f"Backup {filename}",
+            "content": content_b64,
+            "branch": "dev"
+        }
+        if sha:
+            data['sha'] = sha
+        
+        put_res = requests.put(url, headers=headers, json=data)
+        if put_res.status_code not in [200, 201]:
+            return jsonify({"success": False, "error": f"Failed to backup {filename}: {put_res.json()}"})
+
+    return jsonify({"success": True})
+
+@app.route('/restore/upload', methods=['POST'])
+@login_required
+@permission_required('is_admin')
+def restore_from_upload():
+    if 'backup_file' not in request.files:
+        return jsonify({"error": "No file part"}), 400
+    file = request.files['backup_file']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+
+    try:
+        with zipfile.ZipFile(file, 'r') as zf:
+            articles_data = json.loads(zf.read('articles.json'))
+            groups_data = json.loads(zf.read('groups.json'))
+        
+        return jsonify({
+            "articles": articles_data,
+            "groups": groups_data
+        })
+    except Exception as e:
+        return jsonify({"error": f"Invalid backup file: {e}"}), 400
+
+@app.route('/restore/execute', methods=['POST'])
+@login_required
+@permission_required('is_admin')
+def execute_restore():
+    data = request.get_json()
+    
+    # Restore Groups
+    if 'groups' in data:
+        for group_data in data['groups']:
+            group = Group.query.get(group_data['id'])
+            if not group:
+                group = Group(id=group_data['id'])
+                db.session.add(group)
+            group.name = group_data['name']
+            group.color = group_data['color']
+            group.parent_id = group_data['parent_id']
+    
+    # Restore Articles
+    if 'articles' in data:
+        for article_data in data['articles']:
+            article = Article.query.get(article_data['id'])
+            if not article:
+                article = Article(id=article_data['id'])
+                db.session.add(article)
+            article.title = article_data['title']
+            article.content = article_data['content']
+            article.notes = article_data['notes']
+            article.references = article_data['references']
+            article.tags = article_data['tags']
+            article.group_id = article_data['group_id']
+
     db.session.commit()
     return jsonify({"success": True})
 

@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Knowledge System</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Added Marked.js for robust Markdown parsing -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Added highlight.js for code syntax highlighting -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <style>
@@ -34,6 +36,7 @@
 <body class="bg-gray-100 font-sans antialiased">
 
     <div class="flex h-screen bg-white">
+        <!-- Sidebar -->
         <aside class="w-80 bg-white border-r border-gray-200 flex flex-col shrink-0">
             <div class="h-16 flex items-center px-6 border-b border-gray-200">
                 <a href="{{ url_for('index') }}" class="flex items-center">
@@ -125,11 +128,16 @@
             </nav>
         </aside>
 
+        <!-- Main Content -->
         <main class="flex-1 flex flex-col overflow-hidden bg-gray-50 relative">
             <header class="h-16 flex items-center justify-between px-8 border-b border-gray-200 bg-white z-10">
-                <div></div> <div class="flex items-center gap-4">
+                <div></div> <!-- Left Spacer -->
+                 <div class="flex items-center gap-4">
                     <span class="text-sm text-gray-600">Logged in as <strong>{{ current_user.name or current_user.username }}</strong></span>
                     {% if current_user.has_permission('is_admin') %}
+                    <a href="{{ url_for('backup_restore_page') }}" class="p-2 text-gray-500 hover:text-indigo-600 rounded-full hover:bg-gray-100 transition-colors" title="Backup/Restore">
+                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" /></svg>
+                    </a>
                     <a href="{{ url_for('user_management') }}" class="p-2 text-gray-500 hover:text-indigo-600 rounded-full hover:bg-gray-100 transition-colors" title="User Management">
                         <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.071M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-4.663M15 19.128L18 18.5" /></svg>
                     </a>
@@ -169,6 +177,7 @@
         </main>
     </div>
 
+    <!-- Modals Container -->
     <div id="modal-backdrop" class="fixed inset-0 bg-black bg-opacity-60 hidden z-40"></div>
     
     <div id="article-modal" class="fixed inset-0 flex items-center justify-center p-4 hidden z-50 modal-enter">
