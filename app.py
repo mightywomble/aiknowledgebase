@@ -8,11 +8,16 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import desc, or_
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.middleware.proxy_fix import ProxyFix
 from requests_oauthlib import OAuth2Session
 
 # --- APP SETUP & CONFIGURATION ---
 
 app = Flask(__name__)
+
+# Add ProxyFix to handle headers from a reverse proxy
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
 app.config['SECRET_KEY'] = os.urandom(24)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///kb.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
