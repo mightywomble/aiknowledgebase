@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - AI Knowledge System</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
 </head>
 <body class="bg-gray-100 font-sans">
     <div class="flex items-center justify-center min-h-screen">
@@ -50,6 +51,18 @@
                     Sign In
                 </button>
             </form>
+
+            <div class="relative flex py-5 items-center">
+                <div class="flex-grow border-t border-gray-300"></div>
+                <span class="flex-shrink mx-4 text-gray-500 text-sm">Or</span>
+                <div class="flex-grow border-t border-gray-300"></div>
+            </div>
+
+            <a href="{{ url_for('github_login') }}" 
+               class="w-full flex items-center justify-center bg-gray-800 hover:bg-gray-900 text-white font-semibold py-2 px-4 rounded-md transition duration-300">
+                <i class="fab fa-github mr-2"></i> Sign In with GitHub
+            </a>
+            
         </div>
     </div>
 </body>

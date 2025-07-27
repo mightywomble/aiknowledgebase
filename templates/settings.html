@@ -39,8 +39,8 @@
 
         <main class="flex-1 p-8 overflow-y-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <div class="lg:col-span-1">
-                <h1 class="text-3xl font-bold text-gray-900">API Settings</h1>
-                <p class="mt-1 text-gray-600">Configure API keys.</p>
+                <h1 class="text-3xl font-bold text-gray-900">API & Auth Settings</h1>
+                <p class="mt-1 text-gray-600">Configure API keys and authentication providers.</p>
                 <form action="{{ url_for('settings_page') }}" method="POST" class="mt-8 max-w-md">
                     <div class="space-y-6">
                         <div class="relative">
@@ -58,6 +58,21 @@
                         <div class="relative">
                             <label for="openai_api_key" class="block text-sm font-medium">OpenAI API Key</label>
                             <input type="password" name="openai_api_key" id="openai_api_key" value="{{ current_config.OPENAI_API_KEY }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm pr-10">
+                        </div>
+                        <div class="border-t pt-6">
+                            <h3 class="text-lg font-medium">GitHub SSO</h3>
+                            <div class="relative mt-4">
+                                <label for="github_client_id" class="block text-sm font-medium">GitHub Client ID</label>
+                                <input type="password" name="github_client_id" id="github_client_id" value="{{ current_config.GITHUB_CLIENT_ID }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm pr-10">
+                            </div>
+                             <div class="relative mt-4">
+                                <label for="github_client_secret" class="block text-sm font-medium">GitHub Client Secret</label>
+                                <input type="password" name="github_client_secret" id="github_client_secret" value="{{ current_config.GITHUB_CLIENT_SECRET }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm pr-10">
+                            </div>
+                            <div class="mt-4 p-2 bg-gray-100 rounded-md text-xs">
+                                <p class="font-bold">Authorized redirect URI:</p>
+                                <p class="break-all">{{ github_redirect_uri }}</p>
+                            </div>
                         </div>
                          <div class="border-t pt-6">
                              <label class="flex items-center">

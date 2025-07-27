@@ -8,6 +8,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import desc, or_
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+from requests_oauthlib import OAuth2Session
 
 # --- APP SETUP & CONFIGURATION ---
 
@@ -27,7 +28,8 @@ def load_config():
     if os.path.exists(CONFIG_FILE):
         with open(CONFIG_FILE, 'r') as f: return json.load(f)
     return {
-        "GEMINI_API_KEY": "", "GOOGLE_API_KEY": "", "SEARCH_ENGINE_ID": "", "OPENAI_API_KEY": "", "DEBUG_MODE": False
+        "GEMINI_API_KEY": "", "GOOGLE_API_KEY": "", "SEARCH_ENGINE_ID": "", "OPENAI_API_KEY": "",
+        "GITHUB_CLIENT_ID": "", "GITHUB_CLIENT_SECRET": "", "DEBUG_MODE": False
     }
 
 def save_config(new_config):
@@ -54,6 +56,7 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=True)
+    github_id = db.Column(db.String(100), unique=True, nullable=True)
     name = db.Column(db.String(100), nullable=True)
     email = db.Column(db.String(100), unique=True, nullable=True)
     roles = db.relationship('Role', secondary=roles_users, backref=db.backref('users', lazy='dynamic'))
@@ -158,6 +161,42 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
+@app.route('/github_login')
+def github_login():
+    if not config.get('GITHUB_CLIENT_ID') or not config.get('GITHUB_CLIENT_SECRET'):
+        flash('GitHub SSO is not configured.')
+        return redirect(url_for('login'))
+    
+    github = OAuth2Session(config['GITHUB_CLIENT_ID'], scope=['read:user', 'user:email'])
+    authorization_url, state = github.authorization_url('https://github.com/login/oauth/authorize')
+    session['oauth_state'] = state
+    return redirect(authorization_url)
+
+@app.route('/github_callback')
+def github_callback():
+    github = OAuth2Session(config['GITHUB_CLIENT_ID'], state=session.get('oauth_state'))
+    token = github.fetch_token('https://github.com/login/oauth/access_token', client_secret=config['GITHUB_CLIENT_SECRET'], authorization_response=request.url)
+    
+    user_info = github.get('https://api.github.com/user').json()
+    
+    user = User.query.filter_by(github_id=user_info['id']).first()
+    if not user:
+        user = User(
+            github_id=str(user_info['id']),
+            name=user_info.get('name') or user_info.get('login'),
+            username=user_info.get('login'),
+            email=user_info.get('email')
+        )
+        user_role = Role.query.filter_by(name='User').first()
+        if user_role:
+            user.roles.append(user_role)
+        db.session.add(user)
+        db.session.commit()
+    
+    login_user(user)
+    return redirect(url_for('index'))
+
+
 @app.route('/')
 @login_required
 def index():
@@ -202,6 +241,8 @@ def settings_page():
             "GOOGLE_API_KEY": request.form.get('google_api_key', config.get('GOOGLE_API_KEY')),
             "SEARCH_ENGINE_ID": request.form.get('search_engine_id', config.get('SEARCH_ENGINE_ID')),
             "OPENAI_API_KEY": request.form.get('openai_api_key', config.get('OPENAI_API_KEY')),
+            "GITHUB_CLIENT_ID": request.form.get('github_client_id', config.get('GITHUB_CLIENT_ID')),
+            "GITHUB_CLIENT_SECRET": request.form.get('github_client_secret', config.get('GITHUB_CLIENT_SECRET')),
             "DEBUG_MODE": 'debug_mode' in request.form
         }
         save_config(updated_config)
@@ -212,9 +253,13 @@ def settings_page():
     groups = Group.query.order_by(Group.name).all()
     roles = Role.query.all()
     
+    # Construct the callback URL for GitHub
+    github_redirect_uri = url_for('github_callback', _external=True)
+    
     debug_headers = {k: v for k, v in request.headers}
 
-    return render_template('settings.html', current_config=config, groups=groups, roles=roles, debug_headers=debug_headers)
+    return render_template('settings.html', current_config=config, groups=groups, roles=roles, 
+                             github_redirect_uri=github_redirect_uri, debug_headers=debug_headers)
 
 @app.route('/user_management')
 @login_required
