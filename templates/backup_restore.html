@@ -1,0 +1,152 @@
+{% extends "_base_layout.html" %}
+
+{% block title %}Backup & Restore - AI Knowledge System{% endblock %}
+
+{% block content %}
+<main class="flex-1 p-8 overflow-y-auto">
+    <h1 class="text-3xl font-bold text-gray-900">Backup & Restore</h1>
+    <p class="mt-1 text-gray-600">Manage your knowledge base backups.</p>
+
+    <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+        <!-- Backup Section -->
+        <div class="p-6 bg-white rounded-lg border">
+            <h2 class="text-xl font-semibold mb-4">Create Backup</h2>
+            <div class="space-y-4">
+                <div>
+                    <h3 class="font-medium">Backup to File</h3>
+                    <p class="text-sm text-gray-500 mb-2">Download a zip file containing all articles, groups, and settings.</p>
+                    <a href="{{ url_for('backup_to_file') }}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">Download Backup</a>
+                </div>
+                <div class="border-t pt-4">
+                    <h3 class="font-medium">Backup to GitHub</h3>
+                    <p class="text-sm text-gray-500 mb-2">Push articles and groups to the 'dev' branch of your configured GitHub repository.</p>
+                    <button id="github-backup-btn" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-800 hover:bg-gray-900">Backup to GitHub</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Restore Section -->
+        <div class="p-6 bg-white rounded-lg border">
+            <h2 class="text-xl font-semibold mb-4">Restore from Backup</h2>
+            <p class="text-sm text-gray-500 mb-4">Upload a backup file to restore articles and groups. This will overwrite existing data with the same ID.</p>
+            <input type="file" id="restore-file-input" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"/>
+        
+            <div id="restore-preview" class="hidden mt-6">
+                <h3 class="font-medium mb-2">Items to Restore:</h3>
+                <div class="max-h-60 overflow-y-auto border rounded-md p-2 space-y-2">
+                    <!-- Restore items will be populated here -->
+                </div>
+                <button id="execute-restore-btn" class="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">Confirm Restore</button>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+    document.getElementById('github-backup-btn').addEventListener('click', async () => {
+        const btn = document.getElementById('github-backup-btn');
+        btn.textContent = 'Backing up...';
+        btn.disabled = true;
+        const response = await fetch('/backup/github', { method: 'POST' });
+        const result = await response.json();
+        if (result.success) {
+            alert('Backup to GitHub successful!');
+        } else {
+            alert('Error: ' + result.error);
+        }
+        btn.textContent = 'Backup to GitHub';
+        btn.disabled = false;
+    });
+
+    let restoreData = {};
+
+    document.getElementById('restore-file-input').addEventListener('change', async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('backup_file', file);
+
+        const response = await fetch('/restore/upload', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+        if (data.error) {
+            alert('Error: ' + data.error);
+            return;
+        }
+
+        restoreData = data;
+        const previewContainer = document.querySelector('#restore-preview > div');
+        previewContainer.innerHTML = '';
+
+        // Groups
+        if (data.groups && data.groups.length > 0) {
+            let groupHtml = '<div><label class="font-semibold"><input type="checkbox" class="master-checkbox" data-type="groups" checked> Groups</label><div class="pl-4">';
+            data.groups.forEach(g => {
+                groupHtml += `<div><label><input type="checkbox" class="item-checkbox" data-type="groups" data-id="${g.id}" checked> ${g.name}</label></div>`;
+            });
+            groupHtml += '</div></div>';
+            previewContainer.innerHTML += groupHtml;
+        }
+
+        // Articles
+        if (data.articles && data.articles.length > 0) {
+            let articleHtml = '<div><label class="font-semibold"><input type="checkbox" class="master-checkbox" data-type="articles" checked> Articles</label><div class="pl-4">';
+            data.articles.forEach(a => {
+                articleHtml += `<div><label><input type="checkbox" class="item-checkbox" data-type="articles" data-id="${a.id}" checked> ${a.title}</label></div>`;
+            });
+            articleHtml += '</div></div>';
+            previewContainer.innerHTML += articleHtml;
+        }
+
+        document.getElementById('restore-preview').classList.remove('hidden');
+    });
+
+    document.getElementById('restore-preview').addEventListener('change', (event) => {
+        if (event.target.classList.contains('master-checkbox')) {
+            const type = event.target.dataset.type;
+            const checked = event.target.checked;
+            document.querySelectorAll(`.item-checkbox[data-type="${type}"]`).forEach(cb => cb.checked = checked);
+        }
+    });
+
+    document.getElementById('execute-restore-btn').addEventListener('click', async () => {
+        const selectedGroups = Array.from(document.querySelectorAll('.item-checkbox[data-type="groups"]:checked'))
+            .map(cb => restoreData.groups.find(g => g.id == cb.dataset.id));
+        
+        const selectedArticles = Array.from(document.querySelectorAll('.item-checkbox[data-type="articles"]:checked'))
+            .map(cb => restoreData.articles.find(a => a.id == cb.dataset.id));
+
+        if (selectedGroups.length === 0 && selectedArticles.length === 0) {
+            alert('No items selected to restore.');
+            return;
+        }
+
+        const btn = document.getElementById('execute-restore-btn');
+        btn.textContent = 'Restoring...';
+        btn.disabled = true;
+
+        const response = await fetch('/restore/execute', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                groups: selectedGroups,
+                articles: selectedArticles
+            })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            alert('Restore successful! The page will now reload.');
+            location.reload();
+        } else {
+            alert('Error during restore.');
+        }
+        btn.textContent = 'Confirm Restore';
+        btn.disabled = false;
+    });
+</script>
+{% endblock %}

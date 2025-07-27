@@ -1,0 +1,26 @@
+{% extends "_base_layout.html" %}
+
+{% block content %}
+<main class="flex-1 flex flex-col overflow-y-auto">
+    <div class="p-8">
+        <h1 class="text-3xl font-bold text-gray-900">Settings</h1>
+        <p class="mt-1 text-gray-600">Manage your application settings.</p>
+    </div>
+    
+    <!-- Settings Horizontal Navigation -->
+    <div class="px-8 border-b border-gray-200">
+        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+            <a href="{{ url_for('settings_page', page='api') }}" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm {% if active_page == 'api' %}border-indigo-500 text-indigo-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %}">API Keys</a>
+            <a href="{{ url_for('settings_page', page='sso') }}" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm {% if active_page == 'sso' %}border-indigo-500 text-indigo-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %}">SSO</a>
+            <a href="{{ url_for('settings_page', page='backup') }}" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm {% if active_page == 'backup' %}border-indigo-500 text-indigo-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %}">Backup</a>
+            <a href="{{ url_for('settings_page', page='groups') }}" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm {% if active_page == 'groups' %}border-indigo-500 text-indigo-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %}">Groups</a>
+            <a href="{{ url_for('settings_page', page='roles') }}" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm {% if active_page == 'roles' %}border-indigo-500 text-indigo-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %}">Roles</a>
+        </nav>
+    </div>
+
+    <!-- Page Content -->
+    <div class="flex-1 p-8">
+        {% block settings_content %}{% endblock %}
+    </div>
+</main>
+{% endblock %}
