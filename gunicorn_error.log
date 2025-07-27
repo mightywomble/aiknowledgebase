@@ -1,0 +1,6 @@
+[2025-07-27 17:19:10 +0100] [56401] [INFO] Starting gunicorn 23.0.0
+[2025-07-27 17:19:10 +0100] [56401] [INFO] Listening at: http://127.0.0.1:5050 (56401)
+[2025-07-27 17:19:10 +0100] [56401] [INFO] Using worker: sync
+[2025-07-27 17:19:10 +0100] [56403] [INFO] Booting worker with pid: 56403
+[2025-07-27 17:19:10 +0100] [56404] [INFO] Booting worker with pid: 56404
+[2025-07-27 17:19:10 +0100] [56405] [INFO] Booting worker with pid: 56405

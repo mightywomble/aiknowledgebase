@@ -8,15 +8,14 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import desc, or_
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from werkzeug.middleware.proxy_fix import ProxyFix
+# from werkzeug.middleware.proxy_fix import ProxyFix # No longer needed
 from requests_oauthlib import OAuth2Session
 
 # --- APP SETUP & CONFIGURATION ---
 
 app = Flask(__name__)
-# FIX 1: This middleware is essential for running behind a reverse proxy like HAProxy.
-# It tells Flask to trust the X-Forwarded-Proto header, which allows it to generate HTTPS urls.
-app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
+# FIX: The ProxyFix line has been REMOVED. Gunicorn will now handle this.
+# app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
 
 app.config['SECRET_KEY'] = os.urandom(24)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///kb.db'
@@ -115,7 +114,7 @@ def query_gemini(prompt):
         return model.generate_content(prompt).text
     except Exception as e: return f"Error: {e}"
 
-# FIX 2: Corrected the function name from 'query_google_search' to 'query_google_search'
+# FIX: Corrected the function name from 'query_google_search'
 def query_google_search(query_text):
     api_key = config.get('GOOGLE_API_KEY')
     search_id = config.get('SEARCH_ENGINE_ID')
@@ -272,7 +271,9 @@ def user_management():
     roles = Role.query.all()
     return render_template('user_management.html', users=users, roles=roles)
 
-# ... (All other routes for user, group, and article management are unchanged) ...
+
+# --- All other routes remain the same ---
+
 @app.route('/user/add', methods=['POST'])
 @login_required
 @permission_required('is_admin')
@@ -403,7 +404,7 @@ def ask():
     return jsonify({
         "local_kb": query_local_kb(question),
         "gemini": query_gemini(question), 
-        "google": query_google_search(question), 
+        "google": query_google_search(question), # Correct function name used here
         "chatgpt": query_chatgpt(question)
     })
 
@@ -468,7 +469,6 @@ def bulk_action():
     return jsonify({"success": True})
 
 # --- MAIN EXECUTION ---
-
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
