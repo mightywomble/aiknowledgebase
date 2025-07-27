@@ -8,11 +8,15 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import desc, or_
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.middleware.proxy_fix import ProxyFix
 from requests_oauthlib import OAuth2Session
 
 # --- APP SETUP & CONFIGURATION ---
 
 app = Flask(__name__)
+# --- FIX: Add ProxyFix middleware to handle reverse proxy headers ---
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
 app.config['SECRET_KEY'] = os.urandom(24)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///kb.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -47,7 +51,6 @@ roles_users = db.Table('roles_users',
 class Role(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
     name = db.Column(db.String(80), unique=True)
-    # Permissions
     is_admin = db.Column(db.Boolean, default=False)
     can_add_kb = db.Column(db.Boolean, default=False)
     can_edit_kb = db.Column(db.Boolean, default=False)
@@ -154,15 +157,12 @@ def login():
             return redirect(url_for('index'))
         flash('Invalid username or password')
     
-    debug_url = ""
+    # --- FIX: Correctly generate and pass the redirect URI for debugging ---
+    debug_redirect_uri = ""
     if config.get('DEBUG_MODE') and config.get('GOOGLE_CLIENT_ID'):
-        scheme = request.headers.get('X-Forwarded-Proto', 'http')
-        redirect_uri = url_for('google_callback', _external=True, _scheme=scheme)
-        google = OAuth2Session(config['GOOGLE_CLIENT_ID'], redirect_uri=redirect_uri, scope=["openid", "email", "profile"])
-        authorization_url, _ = google.authorization_url('https://accounts.google.com/o/oauth2/v2/auth', access_type="offline", prompt="select_account")
-        debug_url = authorization_url
+        debug_redirect_uri = url_for('google_callback', _external=True)
 
-    return render_template('login.html', debug_url=debug_url)
+    return render_template('login.html', debug_redirect_uri=debug_redirect_uri)
 
 @app.route('/logout')
 @login_required
@@ -176,9 +176,7 @@ def google_login():
         flash('Google SSO is not configured.')
         return redirect(url_for('login'))
     
-    scheme = request.headers.get('X-Forwarded-Proto', 'http')
-    redirect_uri = url_for('google_callback', _external=True, _scheme=scheme)
-
+    redirect_uri = url_for('google_callback', _external=True)
     google = OAuth2Session(config['GOOGLE_CLIENT_ID'], redirect_uri=redirect_uri, scope=["openid", "email", "profile"])
     authorization_url, state = google.authorization_url('https://accounts.google.com/o/oauth2/v2/auth', access_type="offline", prompt="select_account")
     session['oauth_state'] = state
@@ -186,9 +184,7 @@ def google_login():
 
 @app.route('/google_callback')
 def google_callback():
-    scheme = request.headers.get('X-Forwarded-Proto', 'http')
-    redirect_uri = url_for('google_callback', _external=True, _scheme=scheme)
-    
+    redirect_uri = url_for('google_callback', _external=True)
     google = OAuth2Session(config['GOOGLE_CLIENT_ID'], state=session.get('oauth_state'), redirect_uri=redirect_uri)
     token = google.fetch_token('https://oauth2.googleapis.com/token', client_secret=config['GOOGLE_CLIENT_SECRET'], authorization_response=request.url)
     
@@ -197,7 +193,6 @@ def google_callback():
     user = User.query.filter_by(google_id=user_info['id']).first()
     if not user:
         user = User(google_id=user_info['id'], name=user_info.get('name'), email=user_info.get('email'), username=user_info.get('email'))
-        # Assign default 'User' role to new SSO users
         user_role = Role.query.filter_by(name='User').first()
         if user_role: user.roles.append(user_role)
         db.session.add(user)
@@ -260,8 +255,7 @@ def settings_page():
     
     groups = Group.query.order_by(Group.name).all()
     roles = Role.query.all()
-    scheme = request.headers.get('X-Forwarded-Proto', 'http')
-    redirect_uri = url_for('google_callback', _external=True, _scheme=scheme)
+    redirect_uri = url_for('google_callback', _external=True)
     return render_template('settings.html', current_config=config, groups=groups, roles=roles, google_redirect_uri=redirect_uri)
 
 @app.route('/user_management')
