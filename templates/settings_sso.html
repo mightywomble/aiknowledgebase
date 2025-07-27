@@ -1,0 +1,64 @@
+{% extends "settings_layout.html" %}
+{% block title %}SSO Settings{% endblock %}
+{% block content %}
+<h2 class="text-2xl font-bold text-gray-800">GitHub SSO Settings</h2>
+<p class="mt-1 text-sm text-gray-600">Configure GitHub for single sign-on.</p>
+
+<form action="{{ url_for('save_settings') }}" method="POST" class="mt-8 max-w-md space-y-6">
+    <div class="relative">
+        <label for="github_client_id" class="block text-sm font-medium">GitHub Client ID</label>
+        <div class="relative mt-1">
+            <input type="password" name="GITHUB_CLIENT_ID" id="github_client_id" value="{{ current_config.GITHUB_CLIENT_ID }}" class="block w-full rounded-md border-gray-300 shadow-sm pr-10">
+            <button type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600" onclick="toggleVisibility('github_client_id', this)">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+            </button>
+        </div>
+    </div>
+     <div class="relative">
+        <label for="github_client_secret" class="block text-sm font-medium">GitHub Client Secret</label>
+        <div class="relative mt-1">
+            <input type="password" name="GITHUB_CLIENT_SECRET" id="github_client_secret" value="{{ current_config.GITHUB_CLIENT_SECRET }}" class="block w-full rounded-md border-gray-300 shadow-sm pr-10">
+            <button type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600" onclick="toggleVisibility('github_client_secret', this)">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+            </button>
+        </div>
+    </div>
+    <div class="mt-4 p-2 bg-gray-100 rounded-md text-xs">
+        <p class="font-bold">Authorized redirect URI:</p>
+        <p class="break-all">{{ github_redirect_uri }}</p>
+    </div>
+    <div class="pt-6">
+        <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">Save Settings</button>
+    </div>
+</form>
+
+<script>
+    function toggleVisibility(inputId, button) {
+        const input = document.getElementById(inputId);
+        const iconVisible = `
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>`;
+        const iconHidden = `
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7 .95-3.112 3.54-5.61 6.64-6.65M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c1.47 0 2.864.383 4.125 1.065M19.03 19.03L4.97 4.97" />
+            </svg>`;
+
+        if (input.type === 'password') {
+            input.type = 'text';
+            button.innerHTML = iconHidden;
+        } else {
+            input.type = 'password';
+            button.innerHTML = iconVisible;
+        }
+    }
+</script>
+{% endblock %}

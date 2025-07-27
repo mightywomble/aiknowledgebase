@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Settings{% endblock %} - AI Knowledge System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+    <div class="flex h-screen bg-white">
+        <!-- Main Sidebar -->
+        <aside class="w-72 bg-white border-r border-gray-200 flex flex-col shrink-0">
+            <div class="h-16 flex items-center px-6 border-b border-gray-200">
+                 <a href="{{ url_for('index') }}" class="flex items-center">
+                    <svg class="h-8 w-8 text-indigo-600" stroke-width="1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 20.5C12.5523 20.5 13 20.0523 13 19.5C13 18.9477 12.5523 18.5 12 18.5C11.4477 18.5 11 18.9477 11 19.5C11 20.0523 11.4477 20.5 12 20.5Z" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M12 18.5V16M12 8V4M12 4C9.23858 4 7 6.23858 7 9V11C7 13.7614 9.23858 16 12 16C14.7614 16 17 13.7614 17 11V9C17 6.23858 14.7614 4 12 4Z" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M7 9C6.44772 9 6 9.44772 6 10C6 10.5523 6.44772 11 7 11M17 9C17.5523 9 18 9.44772 18 10C18 10.5523 17.5523 11 17 11" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M7 12C6.44772 12 6 12.4477 6 13C6 13.5523 6.44772 14 7 14M17 12C17.5523 12 18 12.4477 18 13C18 13.5523 17.5523 14 17 14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M9 16C8.44772 16 8 16.4477 8 17C8 17.5523 8.44772 18 9 18M15 16C15.5523 16 16 16.4477 16 17C16 17.5523 15.5523 18 15 18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span class="ml-3 text-lg font-semibold text-gray-800">AI Knowledge System</span>
+                </a>
+            </div>
+            <nav class="flex-1 px-4 py-6 space-y-2">
+                <a href="{{ url_for('index') }}" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955a1.5 1.5 0 012.122 0l8.954 8.955M21 12v9a2 2 0 01-2 2H5a2 2 0 01-2-2v-9M15 21v-4.5A2.5 2.5 0 0012.5 14h-1A2.5 2.5 0 009 16.5V21" /></svg>
+                    <span class="ml-3">Home</span>
+                </a>
+                <a href="{{ url_for('settings_page', page='api') }}" class="flex items-center px-4 py-2 text-gray-900 bg-gray-200 rounded-lg">
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-1.007 1.11-1.226a2.25 2.25 0 012.58 1.226l.114.683c.137.82.715 1.51 1.505 1.87l.79.395c.837.418 1.258 1.487 1.018 2.45l-.523 1.942a2.25 2.25 0 01-1.342 1.616.25.25 0 00-.056.09l-.443.886c-.42.84-.172 1.86.52 2.445l.698.582c.85.71 1.998.63 2.807-.184l.158-.158a2.25 2.25 0 013.182 0l.53.53a2.25 2.25 0 010 3.182l-.158.158c-.81.81-1.956.89-2.807.184l-.698-.582c-.692-.585-1.626-.755-2.445-.52l-.886.443a.25.25 0 00-.09.056 2.25 2.25 0 01-1.616 1.342l-1.942.523c-.962.24-1.998-.18-2.45-1.018l-.395-.79a2.25 2.25 0 00-1.87-1.505l-.683-.114a2.25 2.25 0 01-1.226-2.58l.114-.683c.26-1.543-.826-3.023-2.38-3.32l-.79-.158a2.25 2.25 0 01-1.98-2.288v-.04c0-1.26.95-2.322 2.18-2.496l.79-.158c1.554-.3 2.64-1.777 2.38-3.32l-.114-.683z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    <span class="ml-3">Settings</span>
+                </a>
+                 <a href="{{ url_for('user_management') }}" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.071M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-4.663M15 19.128L18 18.5" /></svg>
+                    <span class="ml-3">Users</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col overflow-y-auto">
+            <div class="p-8">
+                <h1 class="text-3xl font-bold text-gray-900">Settings</h1>
+                <p class="mt-1 text-gray-600">Manage your application settings.</p>
+            </div>
+            
+            <!-- Settings Horizontal Navigation -->
+            <div class="px-8 border-b border-gray-200">
+                <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                    <a href="{{ url_for('settings_page', page='api') }}" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm {% if active_page == 'api' %}border-indigo-500 text-indigo-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %}">API Keys</a>
+                    <a href="{{ url_for('settings_page', page='sso') }}" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm {% if active_page == 'sso' %}border-indigo-500 text-indigo-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %}">SSO</a>
+                    <a href="{{ url_for('settings_page', page='backup') }}" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm {% if active_page == 'backup' %}border-indigo-500 text-indigo-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %}">Backup</a>
+                    <a href="{{ url_for('settings_page', page='groups') }}" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm {% if active_page == 'groups' %}border-indigo-500 text-indigo-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %}">Groups</a>
+                    <a href="{{ url_for('settings_page', page='roles') }}" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm {% if active_page == 'roles' %}border-indigo-500 text-indigo-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %}">Roles</a>
+                </nav>
+            </div>
+
+            <!-- Page Content -->
+            <div class="flex-1 p-8">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+</body>
+</html>

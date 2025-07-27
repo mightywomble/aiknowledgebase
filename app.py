@@ -239,38 +239,55 @@ def index():
     return render_template('index.html', articles=articles, all_tags=all_tags, all_groups=all_groups, groups_for_js=groups_for_js, 
                              search_term=search_term, sort_by=sort_by, filter_group_id=filter_group_id, filter_tag=filter_tag)
 
-@app.route('/settings', methods=['GET', 'POST'])
+# --- MODULAR SETTINGS ROUTES ---
+
+@app.route('/settings/')
 @login_required
 @permission_required('is_admin')
-def settings_page():
-    global config
-    if request.method == 'POST':
-        updated_config = {
-            "GEMINI_API_KEY": request.form.get('gemini_api_key', config.get('GEMINI_API_KEY')),
-            "GOOGLE_API_KEY": request.form.get('google_api_key', config.get('GOOGLE_API_KEY')),
-            "SEARCH_ENGINE_ID": request.form.get('search_engine_id', config.get('SEARCH_ENGINE_ID')),
-            "OPENAI_API_KEY": request.form.get('openai_api_key', config.get('OPENAI_API_KEY')),
-            "GITHUB_CLIENT_ID": request.form.get('github_client_id', config.get('GITHUB_CLIENT_ID')),
-            "GITHUB_CLIENT_SECRET": request.form.get('github_client_secret', config.get('GITHUB_CLIENT_SECRET')),
-            "GITHUB_BACKUP_REPO": request.form.get('github_backup_repo', config.get('GITHUB_BACKUP_REPO')),
-            "GITHUB_TOKEN": request.form.get('github_token', config.get('GITHUB_TOKEN')),
-            "DEBUG_MODE": 'debug_mode' in request.form
-        }
-        save_config(updated_config)
-        config = load_config()
-        flash('Settings saved successfully!', 'success')
-        return redirect(url_for('settings_page'))
-    
-    groups = Group.query.order_by(Group.name).all()
-    roles = Role.query.all()
-    
-    # Construct the callback URL for GitHub
-    github_redirect_uri = url_for('github_callback', _external=True)
-    
-    debug_headers = {k: v for k, v in request.headers}
+def settings_redirect():
+    return redirect(url_for('settings_page', page='api'))
 
-    return render_template('settings.html', current_config=config, groups=groups, roles=roles, 
-                             github_redirect_uri=github_redirect_uri, debug_headers=debug_headers)
+@app.route('/settings/<page>')
+@login_required
+@permission_required('is_admin')
+def settings_page(page):
+    template_map = {
+        'api': 'settings_api.html',
+        'sso': 'settings_sso.html',
+        'backup': 'settings_backup.html',
+        'groups': 'settings_groups.html',
+        'roles': 'settings_roles.html'
+    }
+    if page not in template_map:
+        return redirect(url_for('settings_redirect'))
+
+    # Prepare data for templates that need it
+    template_data = {'current_config': config, 'active_page': page}
+    if page == 'sso':
+        template_data['github_redirect_uri'] = url_for('github_callback', _external=True)
+    elif page == 'groups':
+        template_data['groups'] = Group.query.order_by(Group.name).all()
+    elif page == 'roles':
+        template_data['roles'] = Role.query.order_by(Role.name).all()
+
+    return render_template(template_map[page], **template_data)
+
+@app.route('/settings/save', methods=['POST'])
+@login_required
+@permission_required('is_admin')
+def save_settings():
+    global config
+    updated_config = config.copy()
+    
+    for key, value in request.form.items():
+        # Ensure we only update keys that are expected in the config
+        if key in updated_config:
+            updated_config[key] = value
+
+    save_config(updated_config)
+    config = load_config()
+    flash('Settings saved successfully!', 'success')
+    return redirect(request.referrer or url_for('settings_redirect'))
 
 @app.route('/user_management')
 @login_required
@@ -350,7 +367,7 @@ def add_role():
         )
         db.session.add(new_role)
         db.session.commit()
-    return redirect(url_for('settings_page'))
+    return redirect(url_for('settings_page', page='roles'))
 
 @app.route('/group/add', methods=['POST'])
 @login_required
@@ -365,7 +382,7 @@ def add_group():
             new_group.parent_id = int(parent_id)
         db.session.add(new_group)
         db.session.commit()
-    return redirect(url_for('settings_page'))
+    return redirect(url_for('settings_page', page='groups'))
 
 @app.route('/group/delete/<int:id>', methods=['POST'])
 @login_required
@@ -376,7 +393,7 @@ def delete_group(id):
         child.parent_id = group.parent_id
     db.session.delete(group)
     db.session.commit()
-    return redirect(url_for('settings_page'))
+    return redirect(url_for('settings_page', page='groups'))
 
 @app.route('/get/article/<int:article_id>')
 @login_required
