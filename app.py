@@ -582,14 +582,16 @@ def restore_from_upload():
         return jsonify({"error": "No selected file"}), 400
 
     try:
+        backup_data = {}
         with zipfile.ZipFile(file, 'r') as zf:
-            articles_data = json.loads(zf.read('articles.json'))
-            groups_data = json.loads(zf.read('groups.json'))
+            if 'articles.json' in zf.namelist():
+                backup_data['articles'] = json.loads(zf.read('articles.json'))
+            if 'groups.json' in zf.namelist():
+                backup_data['groups'] = json.loads(zf.read('groups.json'))
+            if 'config.json' in zf.namelist():
+                backup_data['config'] = json.loads(zf.read('config.json'))
         
-        return jsonify({
-            "articles": articles_data,
-            "groups": groups_data
-        })
+        return jsonify(backup_data)
     except Exception as e:
         return jsonify({"error": f"Invalid backup file: {e}"}), 400
 
@@ -597,8 +599,16 @@ def restore_from_upload():
 @login_required
 @permission_required('is_admin')
 def execute_restore():
+    global config
     data = request.get_json()
     
+    # Restore Settings
+    if 'config' in data:
+        new_config = config.copy()
+        new_config.update(data['config'])
+        save_config(new_config)
+        config = load_config()
+
     # Restore Groups
     if 'groups' in data:
         for group_data in data['groups']:

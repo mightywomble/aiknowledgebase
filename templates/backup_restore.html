@@ -82,6 +82,12 @@
         const previewContainer = document.querySelector('#restore-preview > div');
         previewContainer.innerHTML = '';
 
+        // Settings
+        if (data.config) {
+            let settingsHtml = '<div><label class="font-semibold"><input type="checkbox" class="master-checkbox" data-type="config" checked> Settings</label></div>';
+            previewContainer.innerHTML += settingsHtml;
+        }
+
         // Groups
         if (data.groups && data.groups.length > 0) {
             let groupHtml = '<div><label class="font-semibold"><input type="checkbox" class="master-checkbox" data-type="groups" checked> Groups</label><div class="pl-4">';
@@ -114,13 +120,20 @@
     });
 
     document.getElementById('execute-restore-btn').addEventListener('click', async () => {
-        const selectedGroups = Array.from(document.querySelectorAll('.item-checkbox[data-type="groups"]:checked'))
+        const payload = {};
+
+        const restoreSettingsCheckbox = document.querySelector('.master-checkbox[data-type="config"]');
+        if (restoreSettingsCheckbox && restoreSettingsCheckbox.checked) {
+            payload.config = restoreData.config;
+        }
+
+        payload.groups = Array.from(document.querySelectorAll('.item-checkbox[data-type="groups"]:checked'))
             .map(cb => restoreData.groups.find(g => g.id == cb.dataset.id));
         
-        const selectedArticles = Array.from(document.querySelectorAll('.item-checkbox[data-type="articles"]:checked'))
+        payload.articles = Array.from(document.querySelectorAll('.item-checkbox[data-type="articles"]:checked'))
             .map(cb => restoreData.articles.find(a => a.id == cb.dataset.id));
 
-        if (selectedGroups.length === 0 && selectedArticles.length === 0) {
+        if (!payload.config && payload.groups.length === 0 && payload.articles.length === 0) {
             alert('No items selected to restore.');
             return;
         }
@@ -132,10 +145,7 @@
         const response = await fetch('/restore/execute', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                groups: selectedGroups,
-                articles: selectedArticles
-            })
+            body: JSON.stringify(payload)
         });
 
         const result = await response.json();
