@@ -426,19 +426,13 @@ def synthesize_and_save():
         if not all(k in data for k in ['title', 'group_id', 'texts']):
             return jsonify({"error": "Missing required fields"}), 400
 
-        synthesized_content = ""
-        if len(data['texts']) == 1:
-            synthesized_content = data['texts'][0]
-        elif len(data['texts']) > 1:
-            info_block = "\n\n---\n\n".join(data['texts'])
-            synthesis_prompt = f"Synthesize the following into an article titled '{data['title']}':\n\n{info_block}"
-            gemini_result = query_gemini(synthesis_prompt)
-            synthesized_content = gemini_result if not gemini_result.startswith("Error:") else info_block
+        # FIX: Directly combine the selected texts instead of re-synthesizing
+        compiled_content = "\n\n---\n\n".join(data['texts'])
         
-        if not synthesized_content: return jsonify({"error": "No content to save."}), 400
+        if not compiled_content: return jsonify({"error": "No content to save."}), 400
 
         new_article = Article(
-            title=data['title'], content=synthesized_content, notes=data.get('notes'),
+            title=data['title'], content=compiled_content, notes=data.get('notes'),
             references=data.get('references'), tags=data.get('tags'), 
             group_id=data['group_id']
         )
