@@ -1,8 +1,8 @@
 {% extends "settings_layout.html" %}
 {% block title %}API Settings{% endblock %}
-{% block content %}
-<h2 class="text-2xl font-bold text-gray-800">API Settings</h2>
-<p class="mt-1 text-sm text-gray-600">Configure API keys for various services.</p>
+{% block settings_content %}
+<h2 class="text-2xl font-bold text-gray-800">API & General Settings</h2>
+<p class="mt-1 text-sm text-gray-600">Configure API keys and general application behavior.</p>
 
 <form action="{{ url_for('save_settings') }}" method="POST" class="mt-8 max-w-md space-y-6">
     <div class="relative">
@@ -81,4 +81,4 @@
         }
     }
 </script>
-{% endblock %}
+{% endblock settings_content %}
