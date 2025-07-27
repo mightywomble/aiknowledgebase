@@ -14,8 +14,9 @@ from requests_oauthlib import OAuth2Session
 # --- APP SETUP & CONFIGURATION ---
 
 app = Flask(__name__)
-# --- FIX: Add ProxyFix middleware to handle reverse proxy headers ---
-app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+# FIX: This is the crucial part for your reverse proxy.
+# It tells Flask to trust the 'X-Forwarded-Proto' header from one layer of proxy.
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
 
 app.config['SECRET_KEY'] = os.urandom(24)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///kb.db'
@@ -103,7 +104,6 @@ def permission_required(permission):
     return decorator
 
 # --- API & LOCAL SEARCH HELPER FUNCTIONS ---
-# (query_gemini, query_google_search, query_chatgpt, query_local_kb remain the same)
 
 def query_gemini(prompt):
     api_key = config.get('GEMINI_API_KEY')
@@ -157,12 +157,15 @@ def login():
             return redirect(url_for('index'))
         flash('Invalid username or password')
     
-    # --- FIX: Correctly generate and pass the redirect URI for debugging ---
-    debug_redirect_uri = ""
-    if config.get('DEBUG_MODE') and config.get('GOOGLE_CLIENT_ID'):
-        debug_redirect_uri = url_for('google_callback', _external=True)
+    # FIX: Check the DEBUG_MODE from the reloaded config and generate the URL
+    debug_host_url = None
+    if config.get('DEBUG_MODE'):
+        # The _external=True combined with ProxyFix will generate the correct https URL
+        debug_host_url = url_for('google_callback', _external=True)
 
-    return render_template('login.html', debug_redirect_uri=debug_redirect_uri)
+    # Pass the generated URL to the template
+    return render_template('login.html', debug_host_url=debug_host_url)
+
 
 @app.route('/logout')
 @login_required
@@ -239,24 +242,32 @@ def index():
 @login_required
 @permission_required('is_admin')
 def settings_page():
+    global config
     if request.method == 'POST':
-        global config
-        config = {
-            "GEMINI_API_KEY": request.form.get('gemini_api_key', ''),
-            "GOOGLE_API_KEY": request.form.get('google_api_key', ''),
-            "SEARCH_ENGINE_ID": request.form.get('search_engine_id', ''),
-            "OPENAI_API_KEY": request.form.get('openai_api_key', ''),
-            "GOOGLE_CLIENT_ID": request.form.get('google_client_id', ''),
-            "GOOGLE_CLIENT_SECRET": request.form.get('google_client_secret', ''),
+        # Create a new dictionary for the updated config
+        updated_config = {
+            "GEMINI_API_KEY": request.form.get('gemini_api_key', config.get('GEMINI_API_KEY')),
+            "GOOGLE_API_KEY": request.form.get('google_api_key', config.get('GOOGLE_API_KEY')),
+            "SEARCH_ENGINE_ID": request.form.get('search_engine_id', config.get('SEARCH_ENGINE_ID')),
+            "OPENAI_API_KEY": request.form.get('openai_api_key', config.get('OPENAI_API_KEY')),
+            "GOOGLE_CLIENT_ID": request.form.get('google_client_id', config.get('GOOGLE_CLIENT_ID')),
+            "GOOGLE_CLIENT_SECRET": request.form.get('google_client_secret', config.get('GOOGLE_CLIENT_SECRET')),
             "DEBUG_MODE": 'debug_mode' in request.form
         }
-        save_config(config)
+        save_config(updated_config)
+        # FIX: Reload the config from the file to ensure the app uses the new settings immediately
+        config = load_config()
+        flash('Settings saved successfully!', 'success')
         return redirect(url_for('settings_page'))
     
     groups = Group.query.order_by(Group.name).all()
     roles = Role.query.all()
     redirect_uri = url_for('google_callback', _external=True)
-    return render_template('settings.html', current_config=config, groups=groups, roles=roles, google_redirect_uri=redirect_uri)
+    
+    # FIX: Add a debug section to display incoming headers
+    debug_headers = {k: v for k, v in request.headers}
+
+    return render_template('settings.html', current_config=config, groups=groups, roles=roles, google_redirect_uri=redirect_uri, debug_headers=debug_headers)
 
 @app.route('/user_management')
 @login_required
@@ -266,6 +277,7 @@ def user_management():
     roles = Role.query.all()
     return render_template('user_management.html', users=users, roles=roles)
 
+# ... (The rest of your routes: add_user, delete_user, etc. remain the same)
 @app.route('/user/add', methods=['POST'])
 @login_required
 @permission_required('is_admin')
@@ -459,6 +471,7 @@ def bulk_action():
                 article.tags = ', '.join(sorted(existing.union(new)))
     db.session.commit()
     return jsonify({"success": True})
+
 
 # --- MAIN EXECUTION ---
 
