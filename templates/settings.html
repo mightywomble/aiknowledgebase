@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Settings - AI Knowledge Base</title>
+    <title>Settings - AI Knowledge System</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 font-sans">
@@ -11,8 +11,14 @@
         <aside class="w-72 bg-white border-r border-gray-200 flex flex-col shrink-0">
             <div class="h-16 flex items-center px-6 border-b border-gray-200">
                  <a href="{{ url_for('index') }}" class="flex items-center">
-                    <svg class="h-8 w-8 text-indigo-600" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    <span class="ml-3 text-lg font-semibold text-gray-800">KB Project</span>
+                    <svg class="h-8 w-8 text-indigo-600" stroke-width="1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 20.5C12.5523 20.5 13 20.0523 13 19.5C13 18.9477 12.5523 18.5 12 18.5C11.4477 18.5 11 18.9477 11 19.5C11 20.0523 11.4477 20.5 12 20.5Z" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M12 18.5V16M12 8V4M12 4C9.23858 4 7 6.23858 7 9V11C7 13.7614 9.23858 16 12 16C14.7614 16 17 13.7614 17 11V9C17 6.23858 14.7614 4 12 4Z" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M7 9C6.44772 9 6 9.44772 6 10C6 10.5523 6.44772 11 7 11M17 9C17.5523 9 18 9.44772 18 10C18 10.5523 17.5523 11 17 11" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M7 12C6.44772 12 6 12.4477 6 13C6 13.5523 6.44772 14 7 14M17 12C17.5523 12 18 12.4477 18 13C18 13.5523 17.5523 14 17 14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M9 16C8.44772 16 8 16.4477 8 17C8 17.5523 8.44772 18 9 18M15 16C15.5523 16 16 16.4477 16 17C16 17.5523 15.5523 18 15 18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span class="ml-3 text-lg font-semibold text-gray-800">AI Knowledge System</span>
                 </a>
             </div>
             <nav class="flex-1 px-4 py-6 space-y-2">
@@ -33,8 +39,8 @@
 
         <main class="flex-1 p-8 overflow-y-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <div class="lg:col-span-1">
-                <h1 class="text-3xl font-bold text-gray-900">API & Auth Settings</h1>
-                <p class="mt-1 text-gray-600">Configure API keys and authentication providers.</p>
+                <h1 class="text-3xl font-bold text-gray-900">API Settings</h1>
+                <p class="mt-1 text-gray-600">Configure API keys.</p>
                 <form action="{{ url_for('settings_page') }}" method="POST" class="mt-8 max-w-md">
                     <div class="space-y-6">
                         <div class="relative">
@@ -52,21 +58,6 @@
                         <div class="relative">
                             <label for="openai_api_key" class="block text-sm font-medium">OpenAI API Key</label>
                             <input type="password" name="openai_api_key" id="openai_api_key" value="{{ current_config.OPENAI_API_KEY }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm pr-10">
-                        </div>
-                        <div class="border-t pt-6">
-                            <h3 class="text-lg font-medium">Google SSO</h3>
-                            <div class="relative mt-4">
-                                <label for="google_client_id" class="block text-sm font-medium">Google Client ID</label>
-                                <input type="password" name="google_client_id" id="google_client_id" value="{{ current_config.GOOGLE_CLIENT_ID }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm pr-10">
-                            </div>
-                             <div class="relative mt-4">
-                                <label for="google_client_secret" class="block text-sm font-medium">Google Client Secret</label>
-                                <input type="password" name="google_client_secret" id="google_client_secret" value="{{ current_config.GOOGLE_CLIENT_SECRET }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm pr-10">
-                            </div>
-                            <div class="mt-4 p-2 bg-gray-100 rounded-md text-xs">
-                                <p class="font-bold">Authorized redirect URI:</p>
-                                <p>{{ google_redirect_uri }}</p>
-                            </div>
                         </div>
                          <div class="border-t pt-6">
                              <label class="flex items-center">

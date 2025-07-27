@@ -1,7 +1,0 @@
-127.0.0.1 - - [27/Jul/2025:17:19:21 +0100] "GET /login?next=%2Fsettings HTTP/1.1" 200 2896 "http://127.0.0.1:5050/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:141.0) Gecko/20100101 Firefox/141.0"
-127.0.0.1 - - [27/Jul/2025:17:19:21 +0100] "GET /favicon.ico HTTP/1.1" 404 207 "http://127.0.0.1:5050/login?next=%2Fsettings" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:141.0) Gecko/20100101 Firefox/141.0"
-127.0.0.1 - - [27/Jul/2025:17:19:29 +0100] "POST /login HTTP/1.1" 302 189 "http://127.0.0.1:5050/login?next=%2Fsettings" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:141.0) Gecko/20100101 Firefox/141.0"
-127.0.0.1 - - [27/Jul/2025:17:19:29 +0100] "GET / HTTP/1.1" 302 217 "http://127.0.0.1:5050/login?next=%2Fsettings" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:141.0) Gecko/20100101 Firefox/141.0"
-127.0.0.1 - - [27/Jul/2025:17:19:29 +0100] "GET /login?next=%2F HTTP/1.1" 200 3189 "http://127.0.0.1:5050/login?next=%2Fsettings" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:141.0) Gecko/20100101 Firefox/141.0"
-127.0.0.1 - - [27/Jul/2025:17:19:36 +0100] "POST /login HTTP/1.1" 302 189 "http://127.0.0.1:5050/login?next=%2F" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:141.0) Gecko/20100101 Firefox/141.0"
-127.0.0.1 - - [27/Jul/2025:17:19:36 +0100] "GET / HTTP/1.1" 200 41031 "http://127.0.0.1:5050/login?next=%2F" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:141.0) Gecko/20100101 Firefox/141.0"

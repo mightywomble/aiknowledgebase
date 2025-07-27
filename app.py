@@ -8,15 +8,10 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import desc, or_
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-# from werkzeug.middleware.proxy_fix import ProxyFix # No longer needed
-from requests_oauthlib import OAuth2Session
 
 # --- APP SETUP & CONFIGURATION ---
 
 app = Flask(__name__)
-# FIX: The ProxyFix line has been REMOVED. Gunicorn will now handle this.
-# app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
-
 app.config['SECRET_KEY'] = os.urandom(24)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///kb.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -32,8 +27,7 @@ def load_config():
     if os.path.exists(CONFIG_FILE):
         with open(CONFIG_FILE, 'r') as f: return json.load(f)
     return {
-        "GEMINI_API_KEY": "", "GOOGLE_API_KEY": "", "SEARCH_ENGINE_ID": "", "OPENAI_API_KEY": "",
-        "GOOGLE_CLIENT_ID": "", "GOOGLE_CLIENT_SECRET": "", "DEBUG_MODE": False
+        "GEMINI_API_KEY": "", "GOOGLE_API_KEY": "", "SEARCH_ENGINE_ID": "", "OPENAI_API_KEY": "", "DEBUG_MODE": False
     }
 
 def save_config(new_config):
@@ -60,7 +54,6 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=True)
-    google_id = db.Column(db.String(100), unique=True, nullable=True)
     name = db.Column(db.String(100), nullable=True)
     email = db.Column(db.String(100), unique=True, nullable=True)
     roles = db.relationship('Role', secondary=roles_users, backref=db.backref('users', lazy='dynamic'))
@@ -114,7 +107,6 @@ def query_gemini(prompt):
         return model.generate_content(prompt).text
     except Exception as e: return f"Error: {e}"
 
-# FIX: Corrected the function name from 'query_google_search'
 def query_google_search(query_text):
     api_key = config.get('GOOGLE_API_KEY')
     search_id = config.get('SEARCH_ENGINE_ID')
@@ -157,11 +149,7 @@ def login():
             return redirect(url_for('index'))
         flash('Invalid username or password')
     
-    debug_host_url = None
-    if config.get('DEBUG_MODE'):
-        debug_host_url = url_for('google_callback', _external=True)
-
-    return render_template('login.html', debug_host_url=debug_host_url)
+    return render_template('login.html')
 
 
 @app.route('/logout')
@@ -169,38 +157,6 @@ def login():
 def logout():
     logout_user()
     return redirect(url_for('login'))
-
-@app.route('/google_login')
-def google_login():
-    if not config.get('GOOGLE_CLIENT_ID') or not config.get('GOOGLE_CLIENT_SECRET'):
-        flash('Google SSO is not configured.')
-        return redirect(url_for('login'))
-    
-    redirect_uri = url_for('google_callback', _external=True)
-    google = OAuth2Session(config['GOOGLE_CLIENT_ID'], redirect_uri=redirect_uri, scope=["openid", "email", "profile"])
-    authorization_url, state = google.authorization_url('https://accounts.google.com/o/oauth2/v2/auth', access_type="offline", prompt="select_account")
-    session['oauth_state'] = state
-    return redirect(authorization_url)
-
-@app.route('/google_callback')
-def google_callback():
-    redirect_uri = url_for('google_callback', _external=True)
-    google = OAuth2Session(config['GOOGLE_CLIENT_ID'], state=session.get('oauth_state'), redirect_uri=redirect_uri)
-    token = google.fetch_token('https://oauth2.googleapis.com/token', client_secret=config['GOOGLE_CLIENT_SECRET'], authorization_response=request.url)
-    
-    user_info = google.get('https://www.googleapis.com/oauth2/v1/userinfo').json()
-    
-    user = User.query.filter_by(google_id=user_info['id']).first()
-    if not user:
-        user = User(google_id=user_info['id'], name=user_info.get('name'), email=user_info.get('email'), username=user_info.get('email'))
-        user_role = Role.query.filter_by(name='User').first()
-        if user_role: user.roles.append(user_role)
-        db.session.add(user)
-        db.session.commit()
-    
-    login_user(user)
-    return redirect(url_for('index'))
-
 
 @app.route('/')
 @login_required
@@ -246,8 +202,6 @@ def settings_page():
             "GOOGLE_API_KEY": request.form.get('google_api_key', config.get('GOOGLE_API_KEY')),
             "SEARCH_ENGINE_ID": request.form.get('search_engine_id', config.get('SEARCH_ENGINE_ID')),
             "OPENAI_API_KEY": request.form.get('openai_api_key', config.get('OPENAI_API_KEY')),
-            "GOOGLE_CLIENT_ID": request.form.get('google_client_id', config.get('GOOGLE_CLIENT_ID')),
-            "GOOGLE_CLIENT_SECRET": request.form.get('google_client_secret', config.get('GOOGLE_CLIENT_SECRET')),
             "DEBUG_MODE": 'debug_mode' in request.form
         }
         save_config(updated_config)
@@ -257,11 +211,10 @@ def settings_page():
     
     groups = Group.query.order_by(Group.name).all()
     roles = Role.query.all()
-    redirect_uri = url_for('google_callback', _external=True)
     
     debug_headers = {k: v for k, v in request.headers}
 
-    return render_template('settings.html', current_config=config, groups=groups, roles=roles, google_redirect_uri=redirect_uri, debug_headers=debug_headers)
+    return render_template('settings.html', current_config=config, groups=groups, roles=roles, debug_headers=debug_headers)
 
 @app.route('/user_management')
 @login_required
@@ -404,7 +357,7 @@ def ask():
     return jsonify({
         "local_kb": query_local_kb(question),
         "gemini": query_gemini(question), 
-        "google": query_google_search(question), # Correct function name used here
+        "google": query_google_search(question),
         "chatgpt": query_chatgpt(question)
     })
 

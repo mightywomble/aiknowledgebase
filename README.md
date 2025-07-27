@@ -134,18 +134,18 @@ waitress-serve --host 127.0.0.1 --port=5050 app:app
 
 You will need to get API keys from the following services to enter into the application's settings page.
 
--   **Google Gemini API Key**: Get from [Google AI Studio](https://aistudio.google.com/ "null").
+-   **Google Gemini API Key**: Get from [Google AI Studio](https://aistudio.google.com/).
     
 -   **Google Custom Search API Key & Search Engine ID**: See the detailed instructions in the project documentation for creating both of these.
     
--   **OpenAI API Key**: Get from the [OpenAI API platform](https://platform.openai.com/api-keys "null").
+-   **OpenAI API Key**: Get from the [OpenAI API platform](https://platform.openai.com/api-keys).
     
 
 **b. Run the App and Enter Keys**
 
 1.  Run the application using one of the commands from Step 6.
     
-2.  Open your web browser and navigate to [**http://127.0.0.1:5050**](https://www.google.com/search?q=http://127.0.0.1:5050 "null").
+2.  Open your web browser and navigate to **[http://127.0.0.1:5050](https://www.google.com/search?q=http://127.0.0.1:5050)**.
     
 3.  Click the **Settings icon** in the top-right corner.
     
