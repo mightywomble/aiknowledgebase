@@ -1,0 +1,39 @@
+{% extends "settings_layout.html" %}
+{% block title %}Role Management{% endblock %}
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <div>
+        <h2 class="text-2xl font-bold text-gray-800">Manage Roles</h2>
+        <p class="mt-1 text-sm text-gray-600">Create and manage user roles and permissions.</p>
+        <form action="{{ url_for('add_role') }}" method="POST" class="mt-8 max-w-md p-4 bg-gray-50 rounded-lg border">
+            <h3 class="text-lg font-medium mb-4">Add New Role</h3>
+            <div class="space-y-4">
+                <div>
+                    <label for="name" class="block text-sm font-medium">Role Name</label>
+                    <input type="text" name="name" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                </div>
+                <fieldset>
+                    <legend class="text-sm font-medium">Permissions</legend>
+                    <div class="mt-2 space-y-2">
+                        <label class="flex items-center"><input type="checkbox" name="is_admin" class="h-4 w-4 rounded border-gray-300 text-indigo-600"><span class="ml-2 text-sm">Admin (Full Access)</span></label>
+                        <label class="flex items-center"><input type="checkbox" name="can_add_kb" class="h-4 w-4 rounded border-gray-300 text-indigo-600"><span class="ml-2 text-sm">Add Articles</span></label>
+                        <label class="flex items-center"><input type="checkbox" name="can_edit_kb" class="h-4 w-4 rounded border-gray-300 text-indigo-600"><span class="ml-2 text-sm">Edit Articles</span></label>
+                        <label class="flex items-center"><input type="checkbox" name="can_delete_kb" class="h-4 w-4 rounded border-gray-300 text-indigo-600"><span class="ml-2 text-sm">Delete Articles</span></label>
+                    </div>
+                </fieldset>
+                <button type="submit" class="rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500">Add Role</button>
+            </div>
+        </form>
+    </div>
+    <div>
+        <h3 class="text-lg font-medium mb-4">Existing Roles</h3>
+        <div class="space-y-2">
+            {% for role in roles %}
+            <div class="p-3 bg-white rounded-lg border">
+                <span>{{ role.name }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

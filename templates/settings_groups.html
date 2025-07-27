@@ -1,0 +1,42 @@
+{% extends "settings_layout.html" %}
+{% block title %}Group Management{% endblock %}
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <div>
+        <h2 class="text-2xl font-bold text-gray-800">Manage Groups</h2>
+        <p class="mt-1 text-sm text-gray-600">Create and organize article groups.</p>
+        <form action="{{ url_for('add_group') }}" method="POST" class="mt-8 max-w-md p-4 bg-gray-50 rounded-lg border">
+            <h3 class="text-lg font-medium mb-4">Add New Group</h3>
+            <div class="space-y-4">
+                <div>
+                    <label for="name" class="block text-sm font-medium">Group Name</label>
+                    <input type="text" name="name" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                </div>
+                <div>
+                    <label for="parent_id" class="block text-sm font-medium">Parent Group (Optional)</label>
+                    <select name="parent_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                        <option value="">None (Top-level)</option>
+                        {% for group in groups %}
+                        <option value="{{ group.id }}">{{ group.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500">Add Group</button>
+            </div>
+        </form>
+    </div>
+    <div>
+        <h3 class="text-lg font-medium mb-4">Existing Groups</h3>
+        <div class="space-y-2">
+            {% for group in groups %}
+            <div class="p-3 bg-white rounded-lg border flex justify-between items-center">
+                <span>{{ group.name }}</span>
+                <form action="{{ url_for('delete_group', id=group.id) }}" method="POST" onsubmit="return confirm('Are you sure? This will also delete all articles in this group.');">
+                    <button type="submit" class="text-red-500 hover:text-red-700 text-xs">Delete</button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
