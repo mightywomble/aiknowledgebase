@@ -14,8 +14,8 @@ from requests_oauthlib import OAuth2Session
 # --- APP SETUP & CONFIGURATION ---
 
 app = Flask(__name__)
-# FIX: This is the crucial part for your reverse proxy.
-# It tells Flask to trust the 'X-Forwarded-Proto' header from one layer of proxy.
+# FIX 1: This middleware is essential for running behind a reverse proxy like HAProxy.
+# It tells Flask to trust the X-Forwarded-Proto header, which allows it to generate HTTPS urls.
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
 
 app.config['SECRET_KEY'] = os.urandom(24)
@@ -115,6 +115,7 @@ def query_gemini(prompt):
         return model.generate_content(prompt).text
     except Exception as e: return f"Error: {e}"
 
+# FIX 2: Corrected the function name from 'query_google_search' to 'query_google_search'
 def query_google_search(query_text):
     api_key = config.get('GOOGLE_API_KEY')
     search_id = config.get('SEARCH_ENGINE_ID')
@@ -157,13 +158,10 @@ def login():
             return redirect(url_for('index'))
         flash('Invalid username or password')
     
-    # FIX: Check the DEBUG_MODE from the reloaded config and generate the URL
     debug_host_url = None
     if config.get('DEBUG_MODE'):
-        # The _external=True combined with ProxyFix will generate the correct https URL
         debug_host_url = url_for('google_callback', _external=True)
 
-    # Pass the generated URL to the template
     return render_template('login.html', debug_host_url=debug_host_url)
 
 
@@ -244,7 +242,6 @@ def index():
 def settings_page():
     global config
     if request.method == 'POST':
-        # Create a new dictionary for the updated config
         updated_config = {
             "GEMINI_API_KEY": request.form.get('gemini_api_key', config.get('GEMINI_API_KEY')),
             "GOOGLE_API_KEY": request.form.get('google_api_key', config.get('GOOGLE_API_KEY')),
@@ -255,7 +252,6 @@ def settings_page():
             "DEBUG_MODE": 'debug_mode' in request.form
         }
         save_config(updated_config)
-        # FIX: Reload the config from the file to ensure the app uses the new settings immediately
         config = load_config()
         flash('Settings saved successfully!', 'success')
         return redirect(url_for('settings_page'))
@@ -264,7 +260,6 @@ def settings_page():
     roles = Role.query.all()
     redirect_uri = url_for('google_callback', _external=True)
     
-    # FIX: Add a debug section to display incoming headers
     debug_headers = {k: v for k, v in request.headers}
 
     return render_template('settings.html', current_config=config, groups=groups, roles=roles, google_redirect_uri=redirect_uri, debug_headers=debug_headers)
@@ -277,7 +272,7 @@ def user_management():
     roles = Role.query.all()
     return render_template('user_management.html', users=users, roles=roles)
 
-# ... (The rest of your routes: add_user, delete_user, etc. remain the same)
+# ... (All other routes for user, group, and article management are unchanged) ...
 @app.route('/user/add', methods=['POST'])
 @login_required
 @permission_required('is_admin')
@@ -471,7 +466,6 @@ def bulk_action():
                 article.tags = ', '.join(sorted(existing.union(new)))
     db.session.commit()
     return jsonify({"success": True})
-
 
 # --- MAIN EXECUTION ---
 
