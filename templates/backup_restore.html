@@ -33,7 +33,8 @@
         
             <div id="restore-preview" class="hidden mt-6">
                 <h3 class="font-medium mb-2">Items to Restore:</h3>
-                <div class="max-h-60 overflow-y-auto border rounded-md p-2 space-y-2">
+                <div id="restore-items-container" class="space-y-2">
+
                     <!-- Restore items will be populated here -->
                 </div>
                 <button id="execute-restore-btn" class="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">Confirm Restore</button>
@@ -79,14 +80,31 @@
         }
 
         restoreData = data;
-        const previewContainer = document.querySelector('#restore-preview > div');
+
+        const previewContainer = document.getElementById('restore-items-container');
         previewContainer.innerHTML = '';
+
+        // Settings
+        if (data.config) {
+            let settingsHtml = '<div><label class="font-semibold p-2 flex items-center bg-gray-50 rounded-md"><input type="checkbox" class="master-checkbox h-4 w-4 rounded border-gray-300 text-indigo-600" data-type="config" checked> <span class="ml-2">Settings</span></label></div>';
+            previewContainer.innerHTML += settingsHtml;
+        }
 
         // Groups
         if (data.groups && data.groups.length > 0) {
-            let groupHtml = '<div><label class="font-semibold"><input type="checkbox" class="master-checkbox" data-type="groups" checked> Groups</label><div class="pl-4">';
+            let groupHtml = `
+                <div>
+                    <div class="font-semibold flex items-center justify-between cursor-pointer p-2 bg-gray-50 rounded-t-md toggle-restore-section">
+                        <label class="flex items-center" onclick="event.stopPropagation()">
+                            <input type="checkbox" class="master-checkbox h-4 w-4 rounded border-gray-300 text-indigo-600" data-type="groups" checked>
+                            <span class="ml-2">Groups (${data.groups.length})</span>
+                        </label>
+                        <svg class="h-5 w-5 transform transition-transform -rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                    </div>
+                    <div class="pl-4 border border-t-0 rounded-b-md p-2 space-y-1 restore-section-content max-h-40 overflow-y-auto hidden">`;
             data.groups.forEach(g => {
-                groupHtml += `<div><label><input type="checkbox" class="item-checkbox" data-type="groups" data-id="${g.id}" checked> ${g.name}</label></div>`;
+                groupHtml += `<div><label class="flex items-center"><input type="checkbox" class="item-checkbox h-4 w-4 rounded border-gray-300 text-indigo-600" data-type="groups" data-id="${g.id}" checked> <span class="ml-2 text-sm">${g.name}</span></label></div>`;
+
             });
             groupHtml += '</div></div>';
             previewContainer.innerHTML += groupHtml;
@@ -94,9 +112,19 @@
 
         // Articles
         if (data.articles && data.articles.length > 0) {
-            let articleHtml = '<div><label class="font-semibold"><input type="checkbox" class="master-checkbox" data-type="articles" checked> Articles</label><div class="pl-4">';
+            let articleHtml = `
+                <div>
+                    <div class="font-semibold flex items-center justify-between cursor-pointer p-2 bg-gray-50 rounded-t-md toggle-restore-section">
+                        <label class="flex items-center" onclick="event.stopPropagation()">
+                            <input type="checkbox" class="master-checkbox h-4 w-4 rounded border-gray-300 text-indigo-600" data-type="articles" checked>
+                            <span class="ml-2">Articles (${data.articles.length})</span>
+                        </label>
+                        <svg class="h-5 w-5 transform transition-transform -rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                    </div>
+                    <div class="pl-4 border border-t-0 rounded-b-md p-2 space-y-1 restore-section-content max-h-40 overflow-y-auto hidden">`;
             data.articles.forEach(a => {
-                articleHtml += `<div><label><input type="checkbox" class="item-checkbox" data-type="articles" data-id="${a.id}" checked> ${a.title}</label></div>`;
+                articleHtml += `<div><label class="flex items-center"><input type="checkbox" class="item-checkbox h-4 w-4 rounded border-gray-300 text-indigo-600" data-type="articles" data-id="${a.id}" checked> <span class="ml-2 text-sm">${a.title}</span></label></div>`;
+
             });
             articleHtml += '</div></div>';
             previewContainer.innerHTML += articleHtml;
@@ -105,7 +133,19 @@
         document.getElementById('restore-preview').classList.remove('hidden');
     });
 
-    document.getElementById('restore-preview').addEventListener('change', (event) => {
+
+    document.getElementById('restore-items-container').addEventListener('click', (event) => {
+        const header = event.target.closest('.toggle-restore-section');
+        if (header) {
+            const content = header.nextElementSibling;
+            const icon = header.querySelector('svg');
+            content.classList.toggle('hidden');
+            icon.classList.toggle('-rotate-180');
+        }
+    });
+
+    document.getElementById('restore-items-container').addEventListener('change', (event) => {
+
         if (event.target.classList.contains('master-checkbox')) {
             const type = event.target.dataset.type;
             const checked = event.target.checked;
@@ -114,13 +154,22 @@
     });
 
     document.getElementById('execute-restore-btn').addEventListener('click', async () => {
-        const selectedGroups = Array.from(document.querySelectorAll('.item-checkbox[data-type="groups"]:checked'))
+
+        const payload = {};
+
+        const restoreSettingsCheckbox = document.querySelector('.master-checkbox[data-type="config"]');
+        if (restoreSettingsCheckbox && restoreSettingsCheckbox.checked) {
+            payload.config = restoreData.config;
+        }
+
+        payload.groups = Array.from(document.querySelectorAll('.item-checkbox[data-type="groups"]:checked'))
             .map(cb => restoreData.groups.find(g => g.id == cb.dataset.id));
         
-        const selectedArticles = Array.from(document.querySelectorAll('.item-checkbox[data-type="articles"]:checked'))
+        payload.articles = Array.from(document.querySelectorAll('.item-checkbox[data-type="articles"]:checked'))
             .map(cb => restoreData.articles.find(a => a.id == cb.dataset.id));
 
-        if (selectedGroups.length === 0 && selectedArticles.length === 0) {
+        if (!payload.config && (!payload.groups || payload.groups.length === 0) && (!payload.articles || payload.articles.length === 0)) {
+
             alert('No items selected to restore.');
             return;
         }
@@ -132,10 +181,9 @@
         const response = await fetch('/restore/execute', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                groups: selectedGroups,
-                articles: selectedArticles
-            })
+
+            body: JSON.stringify(payload)
+
         });
 
         const result = await response.json();
