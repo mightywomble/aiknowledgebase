@@ -14,6 +14,7 @@
     $('#bulk-delete-btn').addEventListener('click', () => handleBulkAction('delete'));
     $('#bulk-update-btn').addEventListener('click', () => {
         renderTagButtons('bulk-tags-container', 'bulk-tags');
+        populateBulkShareRoles();
         openModal('bulk-update-modal');
     });
     $('#confirm-bulk-update-btn').addEventListener('click', () => handleBulkAction('update'));
@@ -199,6 +200,7 @@
         $('#edit-modal-content').innerHTML = content;
         renderTagButtons('edit-tags-container', 'edit-tags');
         $('#confirm-edit-btn').onclick = handleConfirmEdit;
+        $('#open-share-modal-btn').onclick = () => openShareModal(id);
         openModal('edit-modal');
     }
 
@@ -211,6 +213,43 @@
         await fetch(`/edit/article/${id}`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
         });
+        location.reload();
+    }
+
+    async function openShareModal(articleId) {
+        const res = await fetch(`/article/sharing_details/${articleId}`);
+        const data = await res.json();
+        if (data.error) {
+            alert(data.error);
+            return;
+        }
+
+        let content = `<input type="hidden" id="share-article-id" value="${articleId}">`;
+        data.roles.forEach(role => {
+            content += `
+                <div>
+                    <label class="flex items-center">
+                        <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 share-role-checkbox" value="${role.id}" ${role.shared ? 'checked' : ''}>
+                        <span class="ml-2 text-sm">${role.name}</span>
+                    </label>
+                </div>`;
+        });
+
+        $('#share-modal-content').innerHTML = content;
+        $('#confirm-share-btn').onclick = handleConfirmShare;
+        openModal('share-modal');
+    }
+
+    async function handleConfirmShare() {
+        const articleId = $('#share-article-id').value;
+        const roleIds = Array.from($$('.share-role-checkbox:checked')).map(cb => cb.value);
+        
+        await fetch('/article/share', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ article_id: articleId, role_ids: roleIds })
+        });
+        closeModal('share-modal');
         location.reload();
     }
 
@@ -302,7 +341,9 @@
             payload.data = {
                 notes: $('#bulk-notes').value,
                 references: $('#bulk-references').value,
-                tags: $('#bulk-tags').value
+                tags: $('#bulk-tags').value,
+                share_mode: $('#bulk-share-mode').value,
+                role_ids: Array.from($$('#bulk-roles-container input:checked')).map(cb => cb.value)
             };
             closeModal('bulk-update-modal');
         } else if (action === 'delete') {
@@ -324,6 +365,18 @@
         const count = $$('.article-checkbox:checked').length;
         $('#selection-count').textContent = count;
         $('#bulk-actions-bar').classList.toggle('hidden', count === 0);
+    }
+    
+    async function populateBulkShareRoles() {
+        const container = $('#bulk-roles-container');
+        const res = await fetch('/get/roles');
+        const roles = await res.json();
+        container.innerHTML = roles.map(role => `
+            <label class="flex items-center">
+                <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600" value="${role.id}">
+                <span class="ml-2 text-sm">${role.name}</span>
+            </label>
+        `).join('');
     }
 
     // --- UI & Modal ---

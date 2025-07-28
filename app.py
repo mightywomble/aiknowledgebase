@@ -53,6 +53,11 @@ roles_users = db.Table('roles_users',
     db.Column('role_id', db.Integer(), db.ForeignKey('role.id'))
 )
 
+article_roles = db.Table('article_roles',
+    db.Column('article_id', db.Integer, db.ForeignKey('article.id'), primary_key=True),
+    db.Column('role_id', db.Integer, db.ForeignKey('role.id'), primary_key=True)
+)
+
 class Role(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
     name = db.Column(db.String(80), unique=True)
@@ -89,6 +94,10 @@ class Article(db.Model):
     references = db.Column(db.Text, nullable=True)
     tags = db.Column(db.String(255), nullable=True)
     group_id = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    is_shared = db.Column(db.Boolean, default=False, nullable=False)
+    roles = db.relationship('Role', secondary=article_roles, backref=db.backref('articles', lazy='dynamic'))
+    author = db.relationship('User', backref='articles')
 
 # --- LOGIN & SESSION MANAGEMENT ---
 
@@ -213,8 +222,23 @@ def index():
     sort_by = request.args.get('sort', 'group')
     filter_group_id = request.args.get('group', type=int)
     filter_tag = request.args.get('tag', '')
+    filter_visibility = request.args.get('visibility', 'all')
+
+    user_role_ids = [role.id for role in current_user.roles]
     
-    query = Article.query.join(Group)
+    query = Article.query.join(Group).outerjoin(article_roles, Article.id == article_roles.c.article_id)
+    
+    # Base visibility filter
+    visibility_filter = or_(
+        Article.user_id == current_user.id,
+        article_roles.c.role_id.in_(user_role_ids)
+    )
+    query = query.filter(visibility_filter)
+    
+    if filter_visibility == 'local':
+        query = query.filter(Article.user_id == current_user.id, Article.is_shared == False)
+    elif filter_visibility == 'shared':
+        query = query.filter(Article.is_shared == True)
 
     if search_term:
         query = query.filter(or_(Article.title.ilike(f"%{search_term}%"), Article.tags.ilike(f"%{search_term}%")))
@@ -228,7 +252,7 @@ def index():
     elif sort_by == 'newest': query = query.order_by(desc(Article.id))
     else: query = query.order_by(Group.name, Article.title)
     
-    articles = query.all()
+    articles = query.distinct().all()
     
     all_tags_query = db.session.query(Article.tags).filter(Article.tags.isnot(None)).distinct().all()
     all_tags = sorted(list(set(tag.strip() for tags_tuple in all_tags_query for tag in tags_tuple[0].split(',') if tag.strip())))
@@ -237,7 +261,7 @@ def index():
     groups_for_js = [{'id': g.id, 'name': g.name, 'parent_id': g.parent_id} for g in all_groups]
 
     return render_template('index.html', articles=articles, all_tags=all_tags, all_groups=all_groups, groups_for_js=groups_for_js, 
-                             search_term=search_term, sort_by=sort_by, filter_group_id=filter_group_id, filter_tag=filter_tag)
+                             search_term=search_term, sort_by=sort_by, filter_group_id=filter_group_id, filter_tag=filter_tag, filter_visibility=filter_visibility)
 
 # --- MODULAR SETTINGS ROUTES ---
 
@@ -451,7 +475,7 @@ def synthesize_and_save():
         new_article = Article(
             title=data['title'], content=compiled_content, notes=data.get('notes'),
             references=data.get('references'), tags=data.get('tags'), 
-            group_id=data['group_id']
+            group_id=data['group_id'], user_id=current_user.id
         )
         db.session.add(new_article)
         db.session.commit()
@@ -478,6 +502,9 @@ def bulk_action():
         for article in articles: db.session.delete(article)
     elif action == 'update':
         update_data = data.get('data', {})
+        share_mode = update_data.get('share_mode')
+        role_ids = update_data.get('role_ids')
+
         for article in articles:
             if update_data.get('notes'): article.notes = (article.notes or '') + '\n' + update_data['notes']
             if update_data.get('references'): article.references = (article.references or '') + '\n' + update_data['references']
@@ -485,6 +512,18 @@ def bulk_action():
                 existing = set(t.strip() for t in (article.tags or '').split(',') if t.strip())
                 new = set(t.strip() for t in update_data['tags'].split(',') if t.strip())
                 article.tags = ', '.join(sorted(existing.union(new)))
+            
+            if share_mode and role_ids is not None:
+                new_roles = Role.query.filter(Role.id.in_(role_ids)).all()
+                if share_mode == 'replace':
+                    article.roles = new_roles
+                elif share_mode == 'add':
+                    existing_roles = set(article.roles)
+                    for role in new_roles:
+                        if role not in existing_roles:
+                            article.roles.append(role)
+                article.is_shared = len(article.roles) > 0
+
     db.session.commit()
     return jsonify({"success": True})
 
@@ -636,6 +675,51 @@ def execute_restore():
 
     db.session.commit()
     return jsonify({"success": True})
+
+@app.route('/article/sharing_details/<int:article_id>')
+@login_required
+def get_sharing_details(article_id):
+    article = Article.query.get_or_404(article_id)
+    if not (current_user.id == article.user_id or current_user.has_permission('is_admin')):
+        return jsonify({"error": "Permission denied"}), 403
+    
+    all_roles = Role.query.all()
+    shared_with_ids = [role.id for role in article.roles]
+    
+    roles_data = [{"id": role.id, "name": role.name, "shared": role.id in shared_with_ids} for role in all_roles]
+    
+    return jsonify({
+        "article_id": article.id,
+        "is_shared": article.is_shared,
+        "roles": roles_data
+    })
+
+@app.route('/article/share', methods=['POST'])
+@login_required
+def share_article():
+    data = request.get_json()
+    article_id = data.get('article_id')
+    role_ids = data.get('role_ids', [])
+    
+    article = Article.query.get_or_404(article_id)
+    if not (current_user.id == article.user_id or current_user.has_permission('is_admin')):
+        return jsonify({"error": "Permission denied"}), 403
+
+    # Update roles
+    article.roles = Role.query.filter(Role.id.in_(role_ids)).all()
+    
+    # Update shared status
+    article.is_shared = len(article.roles) > 0
+    
+    db.session.commit()
+    return jsonify({"success": True})
+
+@app.route('/get/roles')
+@login_required
+@permission_required('is_admin')
+def get_roles():
+    roles = Role.query.all()
+    return jsonify([{"id": role.id, "name": role.name} for role in roles])
 
 # --- MAIN EXECUTION ---
 if __name__ == '__main__':
