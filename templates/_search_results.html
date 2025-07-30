@@ -86,7 +86,7 @@
         {% for result in results.google_search %}
         <div class="result-card google-result-card">
             <div class="absolute top-4 left-4">
-                <input type="checkbox" class="h-5 w-5 rounded border-gray-400 text-indigo-600 focus:ring-indigo-500" data-content="Title: {{ result.title }}\nSnippet: {{ result.snippet }}\nLink: {{ result.url }}">
+                <input type="checkbox" class="h-5 w-5 rounded border-gray-400 text-indigo-600 focus:ring-indigo-500" data-content="Title: {{ result.title }}\nSnippet: {{ result.snippet }}\nLink: {{ result.url }}" data-link="{{ result.url }}">
             </div>
             <div class="pl-8">
                 <h3 class="result-title">{{ result.title }}</h3>

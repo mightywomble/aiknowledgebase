@@ -297,7 +297,6 @@ def settings_page(page):
     if page not in template_map:
         return redirect(url_for('settings_redirect'))
 
-    # Prepare data for templates that need it
     template_data = {'current_config': config, 'active_page': page}
     if page == 'sso':
         template_data['github_redirect_uri'] = url_for('github_callback', _external=True)
@@ -316,7 +315,6 @@ def save_settings():
     updated_config = config.copy()
     
     for key, value in request.form.items():
-        # Ensure we only update keys that are expected in the config
         if key in updated_config:
             updated_config[key] = value
 
@@ -356,7 +354,7 @@ def add_user():
 @permission_required('is_admin')
 def delete_user(id):
     user = User.query.get_or_404(id)
-    if user.username == 'admin': # Prevent admin deletion
+    if user.username == 'admin':
         flash("Cannot delete the default admin user.")
         return redirect(url_for('user_management'))
     db.session.delete(user)
@@ -447,53 +445,63 @@ def get_article(article_id):
 def edit_article(article_id):
     article = Article.query.get_or_404(article_id)
     data = request.get_json()
-    
     article.title = data['title']
     article.group_id = data['group_id']
     article.notes = data['notes']
     article.references = data['references']
     article.tags = data['tags']
-    
     db.session.commit()
     return jsonify({"success": True, "message": "Article updated."})
 
-# --- UPDATED: /ask route ---
 @app.route('/ask', methods=['POST'])
 @login_required
 def ask():
     question = request.get_json().get('question')
     if not question: 
         return jsonify({"error": "No question"}), 400
-    
-    # Gather all results from the different sources
     results = {
         "local_kb": query_local_kb(question),
         "gemini": query_gemini(question),
         "google_search": query_google_search(question),
         "openai": query_chatgpt(question)
     }
-    
-    # Instead of returning JSON, render the HTML template with the results
     return render_template('_search_results.html', results=results)
 
-@app.route('/synthesize', methods=['POST'])
+# --- NEW ROUTE for creating articles ---
+@app.route('/create_article', methods=['POST'])
 @login_required
 @permission_required('can_add_kb')
-def synthesize_and_save():
+def create_article():
     try:
         data = request.get_json()
         if not all(k in data for k in ['title', 'group_id', 'texts']):
             return jsonify({"error": "Missing required fields"}), 400
 
-        # FIX: Directly combine the selected texts instead of re-synthesizing
+        # Combine the selected text snippets into the main content
         compiled_content = "\n\n---\n\n".join(data['texts'])
-        
-        if not compiled_content: return jsonify({"error": "No content to save."}), 400
+        if not compiled_content: 
+            return jsonify({"error": "No content to save."}), 400
+
+        # Format the references from the modal into a markdown string
+        references_list = data.get('references', [])
+        references_str = ""
+        if references_list:
+            md_links = []
+            for ref in references_list:
+                if ref.get('url'):
+                    name = ref.get('name') or ref.get('url')
+                    md_links.append(f"- [{name}]({ref['url']})")
+            references_str = "\n".join(md_links)
 
         new_article = Article(
-            title=data['title'], content=compiled_content, notes=data.get('notes'),
-            references=data.get('references'), tags=data.get('tags'), 
-            group_id=data['group_id'], user_id=current_user.id
+            title=data['title'],
+            content=compiled_content,
+            notes=data.get('notes'),
+            references=references_str,
+            tags=data.get('tags'), 
+            group_id=data['group_id'],
+            user_id=current_user.id,
+            is_shared=False # Articles are local by default
         )
         db.session.add(new_article)
         db.session.commit()
@@ -559,20 +567,14 @@ def backup_restore_page():
 def backup_to_file():
     memory_file = io.BytesIO()
     with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
-        # Backup articles
         articles = Article.query.all()
         articles_data = [{'id': a.id, 'title': a.title, 'content': a.content, 'notes': a.notes, 
                           'references': a.references, 'tags': a.tags, 'group_id': a.group_id} for a in articles]
         zf.writestr('articles.json', json.dumps(articles_data, indent=4))
-        
-        # Backup groups
         groups = Group.query.all()
         groups_data = [{'id': g.id, 'name': g.name, 'color': g.color, 'parent_id': g.parent_id} for g in groups]
         zf.writestr('groups.json', json.dumps(groups_data, indent=4))
-        
-        # Backup config
         zf.writestr('config.json', json.dumps(config, indent=4))
-
     memory_file.seek(0)
     return send_file(memory_file, download_name='kb_backup.zip', as_attachment=True)
 
@@ -586,68 +588,42 @@ def backup_to_github():
         return jsonify({"success": False, "error": "GitHub repo or token not configured."})
 
     headers = {"Authorization": f"token {token}"}
-    
-    # Get articles and groups data
     articles = Article.query.all()
     articles_data = [{'id': a.id, 'title': a.title, 'content': a.content, 'notes': a.notes, 
                       'references': a.references, 'tags': a.tags, 'group_id': a.group_id} for a in articles]
     groups = Group.query.all()
     groups_data = [{'id': g.id, 'name': g.name, 'color': g.color, 'parent_id': g.parent_id} for g in groups]
-
-    # Create file content
     files = {
         "articles.json": json.dumps(articles_data, indent=4),
         "groups.json": json.dumps(groups_data, indent=4)
     }
-
-    # Simplified: Create/update files in the repo. Assumes 'dev' branch.
-    # A more robust solution would handle branching, commits, etc.
     for filename, content in files.items():
         url = f"https://api.github.com/repos/{repo_name}/contents/{filename}"
-        
-        # Check if file exists to get its SHA
         get_res = requests.get(url, headers=headers)
         sha = None
-        if get_res.status_code == 200:
-            sha = get_res.json().get('sha')
-
+        if get_res.status_code == 200: sha = get_res.json().get('sha')
         import base64
         content_b64 = base64.b64encode(content.encode('utf-8')).decode('utf-8')
-        
-        data = {
-            "message": f"Backup {filename}",
-            "content": content_b64,
-            "branch": "dev"
-        }
-        if sha:
-            data['sha'] = sha
-        
+        data = {"message": f"Backup {filename}", "content": content_b64, "branch": "dev"}
+        if sha: data['sha'] = sha
         put_res = requests.put(url, headers=headers, json=data)
         if put_res.status_code not in [200, 201]:
             return jsonify({"success": False, "error": f"Failed to backup {filename}: {put_res.json()}"})
-
     return jsonify({"success": True})
 
 @app.route('/restore/upload', methods=['POST'])
 @login_required
 @permission_required('is_admin')
 def restore_from_upload():
-    if 'backup_file' not in request.files:
-        return jsonify({"error": "No file part"}), 400
+    if 'backup_file' not in request.files: return jsonify({"error": "No file part"}), 400
     file = request.files['backup_file']
-    if file.filename == '':
-        return jsonify({"error": "No selected file"}), 400
-
+    if file.filename == '': return jsonify({"error": "No selected file"}), 400
     try:
         backup_data = {}
         with zipfile.ZipFile(file, 'r') as zf:
-            if 'articles.json' in zf.namelist():
-                backup_data['articles'] = json.loads(zf.read('articles.json'))
-            if 'groups.json' in zf.namelist():
-                backup_data['groups'] = json.loads(zf.read('groups.json'))
-            if 'config.json' in zf.namelist():
-                backup_data['config'] = json.loads(zf.read('config.json'))
-        
+            if 'articles.json' in zf.namelist(): backup_data['articles'] = json.loads(zf.read('articles.json'))
+            if 'groups.json' in zf.namelist(): backup_data['groups'] = json.loads(zf.read('groups.json'))
+            if 'config.json' in zf.namelist(): backup_data['config'] = json.loads(zf.read('config.json'))
         return jsonify(backup_data)
     except Exception as e:
         return jsonify({"error": f"Invalid backup file: {e}"}), 400
@@ -658,15 +634,11 @@ def restore_from_upload():
 def execute_restore():
     global config
     data = request.get_json()
-    
-    # Restore Settings
     if 'config' in data:
         new_config = config.copy()
         new_config.update(data['config'])
         save_config(new_config)
         config = load_config()
-
-    # Restore Groups
     if 'groups' in data:
         for group_data in data['groups']:
             group = Group.query.get(group_data['id'])
@@ -676,8 +648,6 @@ def execute_restore():
             group.name = group_data['name']
             group.color = group_data['color']
             group.parent_id = group_data['parent_id']
-    
-    # Restore Articles
     if 'articles' in data:
         for article_data in data['articles']:
             article = Article.query.get(article_data['id'])
@@ -690,7 +660,6 @@ def execute_restore():
             article.references = article_data['references']
             article.tags = article_data['tags']
             article.group_id = article_data['group_id']
-
     db.session.commit()
     return jsonify({"success": True})
 
@@ -700,17 +669,10 @@ def get_sharing_details(article_id):
     article = Article.query.get_or_404(article_id)
     if not (current_user.id == article.user_id or current_user.has_permission('is_admin')):
         return jsonify({"error": "Permission denied"}), 403
-    
     all_roles = Role.query.all()
     shared_with_ids = [role.id for role in article.roles]
-    
     roles_data = [{"id": role.id, "name": role.name, "shared": role.id in shared_with_ids} for role in all_roles]
-    
-    return jsonify({
-        "article_id": article.id,
-        "is_shared": article.is_shared,
-        "roles": roles_data
-    })
+    return jsonify({"article_id": article.id, "is_shared": article.is_shared, "roles": roles_data})
 
 @app.route('/article/share', methods=['POST'])
 @login_required
@@ -718,17 +680,11 @@ def share_article():
     data = request.get_json()
     article_id = data.get('article_id')
     role_ids = data.get('role_ids', [])
-    
     article = Article.query.get_or_404(article_id)
     if not (current_user.id == article.user_id or current_user.has_permission('is_admin')):
         return jsonify({"error": "Permission denied"}), 403
-
-    # Update roles
     article.roles = Role.query.filter(Role.id.in_(role_ids)).all()
-    
-    # Update shared status
     article.is_shared = len(article.roles) > 0
-    
     db.session.commit()
     return jsonify({"success": True})
 
@@ -743,12 +699,10 @@ def get_roles():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-        # Create default roles and admin user if they don't exist
         if not Role.query.filter_by(name='Admin').first():
             db.session.add(Role(name='Admin', is_admin=True, can_add_kb=True, can_edit_kb=True, can_delete_kb=True))
         if not Role.query.filter_by(name='User').first():
             db.session.add(Role(name='User', can_add_kb=True, can_edit_kb=True))
-        
         if not User.query.filter_by(username='admin').first():
             hashed_password = generate_password_hash('admin', method='pbkdf2:sha256')
             admin_user = User(username='admin', password_hash=hashed_password, name='Admin')
@@ -757,7 +711,6 @@ if __name__ == '__main__':
             admin_user.roles.append(admin_role)
             admin_user.roles.append(user_role)
             db.session.add(admin_user)
-        
         db.session.commit()
 
     app.run(host='0.0.0.0', port=5050, debug=True)

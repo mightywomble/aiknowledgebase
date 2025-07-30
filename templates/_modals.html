@@ -1,8 +1,10 @@
 <!-- Modals Container -->
-<div id="modal-backdrop" class="fixed inset-0 bg-black bg-opacity-60 hidden z-40 transition-opacity duration-300"></div>
+<!-- MODIFIED: Replaced Tailwind classes with a custom class for styling in glassy-styles.css -->
+<div id="modal-backdrop" class="modal-backdrop hidden"></div>
 
 <!-- Article Viewing Modal -->
-<div id="article-modal" class="fixed inset-0 flex items-center justify-center p-4 hidden z-50 modal-enter">
+<!-- MODIFIED: Replaced Tailwind classes with a custom class -->
+<div id="article-modal" class="modal hidden modal-enter">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
         <div class="p-4 border-b flex justify-between items-center">
             <h2 id="modal-title" class="text-2xl font-bold text-gray-900"></h2>
@@ -22,20 +24,26 @@
     </div>
 </div>
 
-<!-- Synthesis/Create Article Modal -->
-<div id="synthesis-modal" class="fixed inset-0 flex items-center justify-center p-4 hidden z-50 modal-enter">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+<!-- Create Article Modal -->
+<!-- MODIFIED: Replaced Tailwind classes with a custom class -->
+<div id="create-article-modal" class="modal hidden modal-enter">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
         <h3 class="p-6 border-b text-xl font-medium text-gray-900">Create New KB Article</h3>
-        <div id="synthesis-modal-content" class="p-6 space-y-4 overflow-y-auto"></div>
+        <div class="p-6 space-y-4 overflow-y-auto">
+            <!-- This content will be populated by JavaScript -->
+            <div id="create-article-modal-content"></div>
+        </div>
         <div class="bg-gray-50 px-6 py-4 flex justify-end space-x-3 rounded-b-xl border-t">
-            <button onclick="closeModal('synthesis-modal')" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Cancel</button>
-            <button id="confirm-synthesis-btn" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">Create Article</button>
+            <button onclick="closeModal('create-article-modal')" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Cancel</button>
+            <button id="confirm-create-btn" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">Create KB Article</button>
         </div>
     </div>
 </div>
 
+
 <!-- Edit Article Modal -->
-<div id="edit-modal" class="fixed inset-0 flex items-center justify-center p-4 hidden z-50 modal-enter">
+<!-- MODIFIED: Replaced Tailwind classes with a custom class -->
+<div id="edit-modal" class="modal hidden modal-enter">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
         <h3 class="p-6 border-b text-xl font-medium text-gray-900">Edit Article</h3>
         <div id="edit-modal-content" class="p-6 space-y-4 overflow-y-auto"></div>
@@ -50,7 +58,8 @@
 </div>
 
 <!-- Share Article Modal -->
-<div id="share-modal" class="fixed inset-0 flex items-center justify-center p-4 hidden z-50 modal-enter">
+<!-- MODIFIED: Replaced Tailwind classes with a custom class -->
+<div id="share-modal" class="modal hidden modal-enter">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-md">
         <h3 class="p-6 border-b text-xl font-medium text-gray-900">Share Article</h3>
         <div id="share-modal-content" class="p-6 space-y-3"></div>
@@ -62,7 +71,8 @@
 </div>
 
 <!-- Bulk Update Modal -->
-<div id="bulk-update-modal" class="fixed inset-0 flex items-center justify-center p-4 hidden z-50 modal-enter">
+<!-- MODIFIED: Replaced Tailwind classes with a custom class -->
+<div id="bulk-update-modal" class="modal hidden modal-enter">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
         <h3 class="p-6 border-b text-xl font-medium text-gray-900">Bulk Update Articles</h3>
         <div class="p-6 space-y-4 overflow-y-auto">

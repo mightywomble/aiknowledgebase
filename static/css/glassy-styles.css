@@ -969,35 +969,33 @@ body::before {
   height: 20px;
 }
 
+/* MODIFIED: New styles for the pill-shaped button */
 .synthesis-btn {
   flex-shrink: 0;
-  width: 48px;
-  height: 48px;
-  padding: 0;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  border: none;
-  border-radius: 50%;
+  padding: 0.75rem 1.5rem; /* Increased padding for text */
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.5) 0%, rgba(5, 150, 105, 0.6) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50px; /* Pill shape */
   color: white;
+  font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: var(--transition-bounce);
   box-shadow: var(--shadow-elevation-medium);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .synthesis-btn:hover {
-  transform: scale(1.1);
+  transform: scale(1.05); /* Simplified hover effect */
   box-shadow: var(--shadow-elevation-high), 0 0 20px rgba(16, 185, 129, 0.4);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.7) 0%, rgba(5, 150, 105, 0.8) 100%);
 }
 
 .synthesis-btn:active {
-  transform: scale(0.95);
-}
-
-.synthesis-btn svg {
-  width: 24px;
-  height: 24px;
+  transform: scale(0.98);
 }
 
 /* Progress Bar */
@@ -1137,4 +1135,39 @@ body::before {
   .results-area {
     padding-bottom: 2rem;
   }
+}
+
+/* --- NEW: Modal Styles --- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  transition: opacity 0.3s ease;
+  z-index: 1000; /* High z-index to be on top of other content */
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 1001; /* Higher than the backdrop */
+}
+
+/* Modal animation classes used by the script */
+.modal-enter { 
+    opacity: 0; 
+    transform: scale(0.95); 
+}
+.modal-enter-active { 
+    opacity: 1; 
+    transform: scale(1); 
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.modal-leave-active { 
+    opacity: 0; 
+    transform: scale(0.95); 
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
