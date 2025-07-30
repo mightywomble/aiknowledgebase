@@ -1,48 +1,47 @@
-{% extends "_base_layout.html" %}
+{% extends "_admin_layout.html" %}
 
 {% block title %}Backup & Restore - AI Knowledge System{% endblock %}
 
 {% block content %}
-<main class="flex-1 p-8 overflow-y-auto">
-    <h1 class="text-3xl font-bold text-gray-900">Backup & Restore</h1>
-    <p class="mt-1 text-gray-600">Manage your knowledge base backups.</p>
+<h1 class="text-3xl font-bold text-white">Backup & Restore</h1>
+<p class="mt-1 text-gray-400">Manage your knowledge base backups.</p>
 
-    <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-        <!-- Backup Section -->
-        <div class="p-6 bg-white rounded-lg border">
-            <h2 class="text-xl font-semibold mb-4">Create Backup</h2>
-            <div class="space-y-4">
-                <div>
-                    <h3 class="font-medium">Backup to File</h3>
-                    <p class="text-sm text-gray-500 mb-2">Download a zip file containing all articles, groups, and settings.</p>
-                    <a href="{{ url_for('backup_to_file') }}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">Download Backup</a>
-                </div>
-                <div class="border-t pt-4">
-                    <h3 class="font-medium">Backup to GitHub</h3>
-                    <p class="text-sm text-gray-500 mb-2">Push articles and groups to the 'dev' branch of your configured GitHub repository.</p>
-                    <button id="github-backup-btn" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-800 hover:bg-gray-900">Backup to GitHub</button>
-                </div>
+<div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+    <!-- Backup Section -->
+    <div class="p-6 bg-black/20 rounded-lg border border-[var(--glass-border)]">
+        <h2 class="text-xl font-semibold text-white mb-4">Create Backup</h2>
+        <div class="space-y-4">
+            <div>
+                <h3 class="font-medium text-gray-200">Backup to File</h3>
+                <p class="text-sm text-gray-400 mb-2">Download a zip file containing all articles, groups, and settings.</p>
+                <a href="{{ url_for('backup_to_file') }}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">Download Backup</a>
             </div>
-        </div>
-
-        <!-- Restore Section -->
-        <div class="p-6 bg-white rounded-lg border">
-            <h2 class="text-xl font-semibold mb-4">Restore from Backup</h2>
-            <p class="text-sm text-gray-500 mb-4">Upload a backup file to restore articles and groups. This will overwrite existing data with the same ID.</p>
-            <input type="file" id="restore-file-input" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"/>
-        
-            <div id="restore-preview" class="hidden mt-6">
-                <h3 class="font-medium mb-2">Items to Restore:</h3>
-                <div id="restore-items-container" class="space-y-2">
-                    <!-- Restore items will be populated here -->
-                </div>
-                <button id="execute-restore-btn" class="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">Confirm Restore</button>
+            <div class="border-t border-[var(--glass-border)] pt-4">
+                <h3 class="font-medium text-gray-200">Backup to GitHub</h3>
+                <p class="text-sm text-gray-400 mb-2">Push articles and groups to the 'dev' branch of your configured GitHub repository.</p>
+                <button id="github-backup-btn" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-800 hover:bg-gray-900">Backup to GitHub</button>
             </div>
         </div>
     </div>
-</main>
+
+    <!-- Restore Section -->
+    <div class="p-6 bg-black/20 rounded-lg border border-[var(--glass-border)]">
+        <h2 class="text-xl font-semibold text-white mb-4">Restore from Backup</h2>
+        <p class="text-sm text-gray-400 mb-4">Upload a backup file to restore articles and groups. This will overwrite existing data with the same ID.</p>
+        <input type="file" id="restore-file-input" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-500/10 file:text-indigo-300 hover:file:bg-indigo-500/20"/>
+    
+        <div id="restore-preview" class="hidden mt-6">
+            <h3 class="font-medium text-white mb-2">Items to Restore:</h3>
+            <div id="restore-items-container" class="space-y-2">
+                <!-- Restore items will be populated here -->
+            </div>
+            <button id="execute-restore-btn" class="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">Confirm Restore</button>
+        </div>
+    </div>
+</div>
 
 <script>
+    // Scripts remain the same as they are for functionality, not styling
     document.getElementById('github-backup-btn').addEventListener('click', async () => {
         const btn = document.getElementById('github-backup-btn');
         btn.textContent = 'Backing up...';
@@ -79,48 +78,46 @@
         }
 
         restoreData = data;
+
         const previewContainer = document.getElementById('restore-items-container');
         previewContainer.innerHTML = '';
 
-        // Settings
         if (data.config) {
-            let settingsHtml = '<div><label class="font-semibold p-2 flex items-center bg-gray-50 rounded-md"><input type="checkbox" class="master-checkbox h-4 w-4 rounded border-gray-300 text-indigo-600" data-type="config" checked> <span class="ml-2">Settings</span></label></div>';
+            let settingsHtml = '<div><label class="font-semibold p-2 flex items-center bg-black/20 rounded-md text-white"><input type="checkbox" class="master-checkbox h-4 w-4 rounded border-gray-500 text-indigo-600" data-type="config" checked> <span class="ml-2">Settings</span></label></div>';
             previewContainer.innerHTML += settingsHtml;
         }
 
-        // Groups
         if (data.groups && data.groups.length > 0) {
             let groupHtml = `
                 <div>
-                    <div class="font-semibold flex items-center justify-between cursor-pointer p-2 bg-gray-50 rounded-t-md toggle-restore-section">
+                    <div class="font-semibold flex items-center justify-between cursor-pointer p-2 bg-black/20 rounded-t-md toggle-restore-section text-white">
                         <label class="flex items-center" onclick="event.stopPropagation()">
-                            <input type="checkbox" class="master-checkbox h-4 w-4 rounded border-gray-300 text-indigo-600" data-type="groups" checked>
+                            <input type="checkbox" class="master-checkbox h-4 w-4 rounded border-gray-500 text-indigo-600" data-type="groups" checked>
                             <span class="ml-2">Groups (${data.groups.length})</span>
                         </label>
                         <svg class="h-5 w-5 transform transition-transform -rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                     </div>
-                    <div class="pl-4 border border-t-0 rounded-b-md p-2 space-y-1 restore-section-content max-h-40 overflow-y-auto hidden">`;
+                    <div class="pl-4 border border-t-0 border-[var(--glass-border)] rounded-b-md p-2 space-y-1 restore-section-content max-h-40 overflow-y-auto hidden">`;
             data.groups.forEach(g => {
-                groupHtml += `<div><label class="flex items-center"><input type="checkbox" class="item-checkbox h-4 w-4 rounded border-gray-300 text-indigo-600" data-type="groups" data-id="${g.id}" checked> <span class="ml-2 text-sm">${g.name}</span></label></div>`;
+                groupHtml += `<div><label class="flex items-center"><input type="checkbox" class="item-checkbox h-4 w-4 rounded border-gray-500 text-indigo-600" data-type="groups" data-id="${g.id}" checked> <span class="ml-2 text-sm text-gray-300">${g.name}</span></label></div>`;
             });
             groupHtml += '</div></div>';
             previewContainer.innerHTML += groupHtml;
         }
 
-        // Articles
         if (data.articles && data.articles.length > 0) {
             let articleHtml = `
                 <div>
-                    <div class="font-semibold flex items-center justify-between cursor-pointer p-2 bg-gray-50 rounded-t-md toggle-restore-section">
+                    <div class="font-semibold flex items-center justify-between cursor-pointer p-2 bg-black/20 rounded-t-md toggle-restore-section text-white">
                         <label class="flex items-center" onclick="event.stopPropagation()">
-                            <input type="checkbox" class="master-checkbox h-4 w-4 rounded border-gray-300 text-indigo-600" data-type="articles" checked>
+                            <input type="checkbox" class="master-checkbox h-4 w-4 rounded border-gray-500 text-indigo-600" data-type="articles" checked>
                             <span class="ml-2">Articles (${data.articles.length})</span>
                         </label>
                         <svg class="h-5 w-5 transform transition-transform -rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                     </div>
-                    <div class="pl-4 border border-t-0 rounded-b-md p-2 space-y-1 restore-section-content max-h-40 overflow-y-auto hidden">`;
+                    <div class="pl-4 border border-t-0 border-[var(--glass-border)] rounded-b-md p-2 space-y-1 restore-section-content max-h-40 overflow-y-auto hidden">`;
             data.articles.forEach(a => {
-                articleHtml += `<div><label class="flex items-center"><input type="checkbox" class="item-checkbox h-4 w-4 rounded border-gray-300 text-indigo-600" data-type="articles" data-id="${a.id}" checked> <span class="ml-2 text-sm">${a.title}</span></label></div>`;
+                articleHtml += `<div><label class="flex items-center"><input type="checkbox" class="item-checkbox h-4 w-4 rounded border-gray-500 text-indigo-600" data-type="articles" data-id="${a.id}" checked> <span class="ml-2 text-sm text-gray-300">${a.title}</span></label></div>`;
             });
             articleHtml += '</div></div>';
             previewContainer.innerHTML += articleHtml;
@@ -128,6 +125,7 @@
 
         document.getElementById('restore-preview').classList.remove('hidden');
     });
+
 
     document.getElementById('restore-items-container').addEventListener('click', (event) => {
         const header = event.target.closest('.toggle-restore-section');
@@ -149,15 +147,12 @@
 
     document.getElementById('execute-restore-btn').addEventListener('click', async () => {
         const payload = {};
-
         const restoreSettingsCheckbox = document.querySelector('.master-checkbox[data-type="config"]');
         if (restoreSettingsCheckbox && restoreSettingsCheckbox.checked) {
             payload.config = restoreData.config;
         }
-
         payload.groups = Array.from(document.querySelectorAll('.item-checkbox[data-type="groups"]:checked'))
             .map(cb => restoreData.groups.find(g => g.id == cb.dataset.id));
-        
         payload.articles = Array.from(document.querySelectorAll('.item-checkbox[data-type="articles"]:checked'))
             .map(cb => restoreData.articles.find(a => a.id == cb.dataset.id));
 
