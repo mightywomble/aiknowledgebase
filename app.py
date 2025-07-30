@@ -18,7 +18,6 @@ import requests
 
 app = Flask(__name__)
 
-# Add ProxyFix to handle headers from a reverse proxy
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 app.config['SECRET_KEY'] = os.urandom(24)
@@ -38,7 +37,7 @@ def load_config():
     return {
         "GEMINI_API_KEY": "", "GOOGLE_API_KEY": "", "SEARCH_ENGINE_ID": "", "OPENAI_API_KEY": "",
         "GITHUB_CLIENT_ID": "", "GITHUB_CLIENT_SECRET": "", "DEBUG_MODE": False,
-        "GITHUB_BACKUP_REPO": "", "GITHUB_TOKEN": ""
+        "GITHUB_BACKUP_REPO": "", "GITHUB_TOKEN": "", "GEMINI_MODEL": "gemini-1.5-flash"
     }
 
 def save_config(new_config):
@@ -120,23 +119,29 @@ def permission_required(permission):
 
 def query_gemini(prompt):
     api_key = config.get('GEMINI_API_KEY')
+    # MODIFIED: Read the selected model from the config file
+    model_name = config.get('GEMINI_MODEL', 'gemini-1.5-flash') 
     if not api_key: return "Error: Gemini API key not configured."
     try:
         import google.generativeai as genai
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        # MODIFIED: Use the model name from the config
+        model = genai.GenerativeModel(model_name)
         return model.generate_content(prompt).text
-    except Exception as e: return f"Error: {e}"
+    except Exception as e:
+        error_str = str(e).lower()
+        if 'quota' in error_str or 'resource_exhausted' in error_str:
+            return "Error: Quota exceeded."
+        return f"Error: {e}"
 
 def query_google_search(query_text):
     api_key = config.get('GOOGLE_API_KEY')
     search_id = config.get('SEARCH_ENGINE_ID')
-    if not api_key or not search_id: return [] # Return empty list on config error
+    if not api_key or not search_id: return []
     try:
         from googleapiclient.discovery import build
         service = build("customsearch", "v1", developerKey=api_key)
         res = service.cse().list(q=query_text, cx=search_id, num=5).execute()
-        # Format the results to match the template's expectations
         return [
             {
                 "title": i.get('title'), 
@@ -162,7 +167,6 @@ def query_chatgpt(prompt):
     except Exception as e: return f"Error: {e}"
 
 def query_local_kb(search_term):
-    """Searches the local database for relevant articles."""
     search_like = f"%{search_term}%"
     articles = Article.query.filter(
         or_(Article.title.ilike(search_like), Article.content.ilike(search_like), Article.tags.ilike(search_like))
@@ -240,7 +244,6 @@ def index():
     
     query = Article.query.join(Group).outerjoin(article_roles, Article.id == article_roles.c.article_id)
     
-    # Base visibility filter
     visibility_filter = or_(
         Article.user_id == current_user.id,
         article_roles.c.role_id.in_(user_role_ids)
@@ -467,7 +470,6 @@ def ask():
     }
     return render_template('_search_results.html', results=results)
 
-# --- NEW ROUTE for creating articles ---
 @app.route('/create_article', methods=['POST'])
 @login_required
 @permission_required('can_add_kb')
@@ -477,12 +479,10 @@ def create_article():
         if not all(k in data for k in ['title', 'group_id', 'texts']):
             return jsonify({"error": "Missing required fields"}), 400
 
-        # Combine the selected text snippets into the main content
         compiled_content = "\n\n---\n\n".join(data['texts'])
         if not compiled_content: 
             return jsonify({"error": "No content to save."}), 400
 
-        # Format the references from the modal into a markdown string
         references_list = data.get('references', [])
         references_str = ""
         if references_list:
@@ -501,7 +501,7 @@ def create_article():
             tags=data.get('tags'), 
             group_id=data['group_id'],
             user_id=current_user.id,
-            is_shared=False # Articles are local by default
+            is_shared=False
         )
         db.session.add(new_article)
         db.session.commit()
@@ -663,16 +663,24 @@ def execute_restore():
     db.session.commit()
     return jsonify({"success": True})
 
+# --- SHARING ROUTES ---
 @app.route('/article/sharing_details/<int:article_id>')
 @login_required
 def get_sharing_details(article_id):
     article = Article.query.get_or_404(article_id)
     if not (current_user.id == article.user_id or current_user.has_permission('is_admin')):
         return jsonify({"error": "Permission denied"}), 403
+    
     all_roles = Role.query.all()
     shared_with_ids = [role.id for role in article.roles]
+    
     roles_data = [{"id": role.id, "name": role.name, "shared": role.id in shared_with_ids} for role in all_roles]
-    return jsonify({"article_id": article.id, "is_shared": article.is_shared, "roles": roles_data})
+    
+    return jsonify({
+        "article_id": article.id,
+        "is_shared": article.is_shared,
+        "roles": roles_data
+    })
 
 @app.route('/article/share', methods=['POST'])
 @login_required
@@ -680,11 +688,14 @@ def share_article():
     data = request.get_json()
     article_id = data.get('article_id')
     role_ids = data.get('role_ids', [])
+    
     article = Article.query.get_or_404(article_id)
     if not (current_user.id == article.user_id or current_user.has_permission('is_admin')):
         return jsonify({"error": "Permission denied"}), 403
+
     article.roles = Role.query.filter(Role.id.in_(role_ids)).all()
     article.is_shared = len(article.roles) > 0
+    
     db.session.commit()
     return jsonify({"success": True})
 

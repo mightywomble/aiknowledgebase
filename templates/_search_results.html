@@ -1,3 +1,22 @@
+{# NEW: Banner for Gemini Quota Error #}
+{% if results.gemini and 'Quota exceeded' in results.gemini %}
+<div class="result-card border-l-4 border-yellow-400 bg-yellow-400/10">
+    <div class="flex items-start">
+        <div class="flex-shrink-0">
+            <svg class="h-6 w-6 text-yellow-300" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.031-1.743 3.031H4.42c-1.533 0-2.493-1.697-1.743-3.031l5.58-9.92zM10 13a1 1 0 100-2 1 1 0 000 2zm-1-4a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clip-rule="evenodd" />
+            </svg>
+        </div>
+        <div class="ml-3">
+            <h3 class="text-lg font-semibold text-yellow-200">Gemini API Quota Exceeded</h3>
+            <div class="mt-2 text-sm text-yellow-300">
+                <p>The API limit for your Google Gemini account may have been reached. Results from other services are shown below.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <div id="synthesis-section">
     {# This template receives a dictionary of results, e.g., {'google_search': [...], 'gemini': '...'} #}
 
