@@ -1,62 +1,61 @@
-{% extends "_base_layout.html" %}
+{% extends "_admin_layout.html" %}
 
 {% block title %}User Management - AI Knowledge System{% endblock %}
 
 {% block content %}
-<main class="flex-1 p-8 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-8">
-    <div>
-        <h1 class="text-3xl font-bold text-gray-900">User Management</h1>
-        <p class="mt-1 text-gray-600">Add new local users and manage roles.</p>
-        <form action="{{ url_for('add_user') }}" method="POST" class="mt-8 max-w-md p-4 bg-gray-50 rounded-lg border">
-            <h3 class="text-lg font-medium mb-4">Add New Local User</h3>
-            <div class="space-y-4">
-                <div>
-                    <label for="username" class="block text-sm font-medium">Username</label>
-                    <input type="text" name="username" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
-                </div>
-                <div>
-                    <label for="password" class="block text-sm font-medium">Password</label>
-                    <input type="password" name="password" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
-                </div>
-                <button type="submit" class="rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500">Add User</button>
+<h1 class="text-3xl font-bold text-white">User Management</h1>
+<p class="mt-1 text-gray-400">Add new local users and manage roles.</p>
+
+<div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+    <!-- Add User Section -->
+    <div class="p-6 bg-black/20 rounded-lg border border-[var(--glass-border)]">
+        <h3 class="text-lg font-medium text-white mb-4">Add New Local User</h3>
+        <form action="{{ url_for('add_user') }}" method="POST" class="space-y-4">
+            <div>
+                <label for="username" class="block text-sm font-medium text-gray-300">Username</label>
+                <input type="text" name="username" required class="mt-1 block w-full rounded-md bg-transparent border-[var(--glass-border)] text-white shadow-sm">
             </div>
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-300">Password</label>
+                <input type="password" name="password" required class="mt-1 block w-full rounded-md bg-transparent border-[var(--glass-border)] text-white shadow-sm">
+            </div>
+            <button type="submit" class="rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500">Add User</button>
         </form>
     </div>
-    <div>
-        <h3 class="text-lg font-medium mb-4">Existing Users</h3>
-        <div class="space-y-4">
-            {% for user in users %}
-            <div class="p-4 bg-white rounded-lg border">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="font-semibold">{{ user.name or user.username }}</p>
-                        <p class="text-sm text-gray-500">{{ user.email or 'Local Account' }}</p>
-                    </div>
-                    {% if user.username != 'admin' %}
-                    <form action="{{ url_for('delete_user', id=user.id) }}" method="POST" onsubmit="return confirm('Are you sure?');">
-                        <button type="submit" class="text-red-500 hover:text-red-700 text-sm">Delete</button>
-                    </form>
-                    {% endif %}
+    <!-- Existing Users Section -->
+    <div class="space-y-4">
+        <h3 class="text-lg font-medium text-white mb-4">Existing Users</h3>
+        {% for user in users %}
+        <div class="p-4 bg-black/20 rounded-lg border border-[var(--glass-border)]">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="font-semibold text-white">{{ user.name or user.username }}</p>
+                    <p class="text-sm text-gray-400">{{ user.email or 'Local Account' }}</p>
                 </div>
-                <div class="mt-4 border-t pt-4">
-                    <p class="text-sm font-medium mb-2">Roles</p>
-                    <div class="flex flex-wrap gap-2">
-                        {% for role in roles %}
-                            {% if role in user.roles %}
-                                <form action="{{ url_for('remove_role', user_id=user.id, role_id=role.id) }}" method="POST">
-                                    <button type="submit" class="px-2 py-1 text-xs bg-indigo-500 text-white rounded-full">{{ role.name }} &times;</button>
-                                </form>
-                            {% else %}
-                                 <form action="{{ url_for('assign_role', user_id=user.id, role_id=role.id) }}" method="POST">
-                                    <button type="submit" class="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300">{{ role.name }} +</button>
-                                </form>
-                            {% endif %}
-                        {% endfor %}
-                    </div>
+                {% if user.username != 'admin' %}
+                <form action="{{ url_for('delete_user', id=user.id) }}" method="POST" onsubmit="return confirm('Are you sure?');">
+                    <button type="submit" class="text-red-500 hover:text-red-400 text-sm">Delete</button>
+                </form>
+                {% endif %}
+            </div>
+            <div class="mt-4 border-t border-[var(--glass-border)] pt-4">
+                <p class="text-sm font-medium text-gray-300 mb-2">Roles</p>
+                <div class="flex flex-wrap gap-2">
+                    {% for role in roles %}
+                        {% if role in user.roles %}
+                            <form action="{{ url_for('remove_role', user_id=user.id, role_id=role.id) }}" method="POST">
+                                <button type="submit" class="px-2 py-1 text-xs bg-indigo-500 text-white rounded-full">{{ role.name }} &times;</button>
+                            </form>
+                        {% else %}
+                             <form action="{{ url_for('assign_role', user_id=user.id, role_id=role.id) }}" method="POST">
+                                <button type="submit" class="px-2 py-1 text-xs bg-white/10 text-gray-300 rounded-full hover:bg-white/20">{{ role.name }} +</button>
+                            </form>
+                        {% endif %}
+                    {% endfor %}
                 </div>
             </div>
-            {% endfor %}
         </div>
+        {% endfor %}
     </div>
-</main>
+</div>
 {% endblock %}

@@ -1,0 +1,119 @@
+<div id="synthesis-section">
+    {# This template receives a dictionary of results, e.g., {'google_search': [...], 'gemini': '...'} #}
+
+    {% if results.local_kb and results.local_kb|length > 0 %}
+    <div class="search-section section-local-kb">
+        <div class="search-section-header">
+            <div class="section-icon">
+                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V6h5.17l2 2H20v10z"/></svg>
+            </div>
+            <h2 class="section-title">From Your Knowledge Base</h2>
+        </div>
+        
+        {% for result in results.local_kb %}
+        <div class="result-card">
+            <div class="absolute top-4 left-4">
+                <input type="checkbox" class="h-5 w-5 rounded border-gray-400 text-indigo-600 focus:ring-indigo-500" data-content="{{ result.content }}">
+            </div>
+            <div class="pl-8">
+                <h3 class="result-title">{{ result.title }}</h3>
+                <div class="result-content">
+                    <p>{{ result.content | truncate(250) }}</p>
+                </div>
+                <div class="result-actions">
+                    <button onclick="handleArticleClick({{ result.id }})" class="result-link">
+                        <span>View Full Article</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+
+    {% if results.gemini and "Error:" not in results.gemini %}
+    <div class="search-section section-google-gemini">
+        <div class="search-section-header">
+            <div class="section-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5.5-2.5l1.5-1.5L12 18l4-4-1.5-1.5L12 15l-3.5-3.5z"/></svg>
+            </div>
+            <h2 class="section-title">Google Gemini</h2>
+        </div>
+        <div class="result-card ai-response-card">
+            <div class="absolute top-4 left-4">
+                <input type="checkbox" class="h-5 w-5 rounded border-gray-400 text-indigo-600 focus:ring-indigo-500" data-content="{{ results.gemini }}">
+            </div>
+            <div class="pl-8">
+                <div class="result-content" id="gemini-content">
+                    {{ results.gemini | safe }}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if results.openai and "Error:" not in results.openai %}
+    <div class="search-section section-openai">
+        <div class="search-section-header">
+            <div class="section-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M22.5,12c0-5.8-4.7-10.5-10.5-10.5S1.5,6.2,1.5,12S6.2,22.5,12,22.5S22.5,17.8,22.5,12z M12,21 C7.03,21,3,16.97,3,12S7.03,3,12,3s9,4.03,9,9S16.97,21,12,21z M8,12c0-2.21,1.79-4,4-4s4,1.79,4,4-1.79,4-4,4S8,14.21,8,12z"/></svg>
+            </div>
+            <h2 class="section-title">OpenAI</h2>
+        </div>
+        <div class="result-card ai-response-card">
+             <div class="absolute top-4 left-4">
+                <input type="checkbox" class="h-5 w-5 rounded border-gray-400 text-indigo-600 focus:ring-indigo-500" data-content="{{ results.openai }}">
+            </div>
+            <div class="pl-8">
+                <div class="result-content" id="openai-content">
+                    {{ results.openai | safe }}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if results.google_search %}
+    <div class="search-section section-google-search">
+        <div class="search-section-header">
+            <div class="section-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M21.35,11.1H12.18V13.83H18.68C18.43,15.63 17.25,17.83 15.1,19.25L15.09,19.26L18.05,21.62L18.23,21.45C20.28,19.67 21.62,16.9 21.62,13.7C21.62,12.71 21.52,11.88 21.35,11.1V11.1Z M4.23,14.09C5.62,17.43 8.83,19.93 12.71,19.93C15.08,19.93 17.06,19.17 18.23,18.06L15.27,15.71C14.34,16.36 13.2,16.77 12,16.77C9.13,16.77 6.77,14.99 5.9,12.43L2.89,12.44L2.74,14.82C3.2,15.75 3.65,16.66 4.23,17.58V17.58Z M12,4.07C14.12,4.07 15.85,4.86 17.09,6.01L19.82,3.28C17.9,1.52 15.24,0.5 12,0.5C7.17,0.5 3.14,3.38 1.28,7.38L4.24,9.73C5.09,7.17 8.28,5.33 11.29,5.33C11.55,5.33 11.8,5.35 12.05,5.38L12,4.07Z"/></svg>
+            </div>
+            <h2 class="section-title">Google Search</h2>
+        </div>
+        
+        {% for result in results.google_search %}
+        <div class="result-card google-result-card">
+            <div class="absolute top-4 left-4">
+                <input type="checkbox" class="h-5 w-5 rounded border-gray-400 text-indigo-600 focus:ring-indigo-500" data-content="Title: {{ result.title }}\nSnippet: {{ result.snippet }}\nLink: {{ result.url }}" data-link="{{ result.url }}">
+            </div>
+            <div class="pl-8">
+                <h3 class="result-title">{{ result.title }}</h3>
+                <div class="result-metadata">
+                    <span class="result-source">
+                        <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:14px; height:14px;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.916 17.916 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" /></svg>
+                        <span>{{ result.source }}</span>
+                    </span>
+                    {% if result.date %}
+                    <span class="result-date">
+                        <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:14px; height:14px;"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>
+                        <span>{{ result.date }}</span>
+                    </span>
+                    {% endif %}
+                </div>
+                <div class="result-content">
+                    <p>{{ result.snippet }}</p>
+                </div>
+                <div class="result-actions">
+                    <a href="{{ result.url }}" target="_blank" class="result-link">
+                        <span>View Source</span>
+                        <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:14px; height:14px;"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>

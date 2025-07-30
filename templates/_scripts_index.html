@@ -18,86 +18,79 @@
         openModal('bulk-update-modal');
     });
     $('#confirm-bulk-update-btn').addEventListener('click', () => handleBulkAction('update'));
-    $('#share-article-btn').addEventListener('click', handleShareArticle);
+    
+    // --- Delegated Event Listeners on Body ---
+    document.body.addEventListener('click', function(e) {
+        if (e.target.id === 'share-article-btn') handleShareArticle();
+        
+        if (e.target.closest('#start-synthesis-btn')) {
+            e.preventDefault();
+            openCreateArticleModal();
+        }
+        
+        if (e.target.closest('#add-reference-btn')) {
+            addReferenceField();
+        }
+
+        if (e.target.closest('.remove-reference-btn')) {
+            e.target.closest('.reference-field-group').remove();
+        }
+    });
+
 
     // --- Main Functions ---
     async function handleAskSubmit(e) {
         e.preventDefault();
-        if (!$('#question-input').value.trim()) return;
+        const questionInput = $('#question-input');
+        if (!questionInput.value.trim()) return;
 
         $('#results-area').innerHTML = `
-            <div class="text-center p-8 glass-pane rounded-xl flex-1 flex flex-col justify-center">
-                <h3 class="text-lg font-semibold text-gray-700 mb-4">Fetching Knowledge...</h3>
-                <div class="w-full bg-gray-200 rounded-full h-2.5 mb-4">
-                    <div id="progress-bar" class="bg-indigo-600 h-2.5 rounded-full transition-all duration-500" style="width: 10%"></div>
-                </div>
-                <p id="progress-status" class="text-sm text-gray-600">Initializing...</p>
+            <div class="result-card">
+                <h3 class="result-title">Searching Knowledge Sources...</h3>
+                <div class="progress-container"><div class="progress-bar"><div id="progress-fill" class="progress-fill" style="width: 10%"></div></div></div>
+                <p id="progress-status" class="text-sm text-muted">Initializing...</p>
             </div>`;
         
-        const progressBar = $('#progress-bar');
+        const progressFill = $('#progress-fill');
         const progressStatus = $('#progress-status');
 
         try {
-            progressStatus.textContent = 'Querying AI services...';
+            progressStatus.textContent = 'Querying AI and web services...';
             const response = await fetch('/ask', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ question: $('#question-input').value }),
+                body: JSON.stringify({ question: questionInput.value }),
             });
             
-            progressBar.style.width = '75%';
+            progressFill.style.width = '75%';
             progressStatus.textContent = 'Processing results...';
 
-            if (!response.ok) throw new Error('Network response was not ok');
+            if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
             
-            const results = await response.json();
+            const resultsHtml = await response.text();
             
-            progressBar.style.width = '100%';
+            progressFill.style.width = '100%';
             progressStatus.textContent = 'Done!';
 
-            setTimeout(() => displayResults(results), 500);
+            setTimeout(() => {
+                $('#results-area').innerHTML = resultsHtml;
+                processRenderedResults();
+            }, 500);
 
         } catch (error) {
-            $('#results-area').innerHTML = `<div class="bg-red-100 p-4 rounded-lg">Error fetching answers.</div>`;
+            console.error("Search error:", error);
+            $('#results-area').innerHTML = `<div class="no-results">Error fetching answers. Please try again.</div>`;
         }
     }
 
-    function displayResults(results) {
-        let topContent = '';
-        if (results.gemini && results.gemini.toLowerCase().includes("quota")) {
-            topContent += `<div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4" role="alert"><p class="font-bold">Gemini API Quota Exceeded</p><p>You have reached your daily limit for the Gemini API. Results from other services are shown below.</p></div>`;
-        }
-
-        let mainContent = '<div class="space-y-6" id="synthesis-section">';
-        let hasResults = false;
-        
-        if (results.local_kb && results.local_kb.length > 0) {
-            mainContent += createLocalKBResultsCard(results.local_kb);
-            hasResults = true;
-        }
-        if (results.gemini && !results.gemini.startsWith("Error:")) {
-            mainContent += createResultCard('gemini', 'Google Gemini', results.gemini);
-            hasResults = true;
-        }
-        if (results.chatgpt && !results.chatgpt.startsWith("Error:")) {
-            mainContent += createResultCard('chatgpt', 'OpenAI ChatGPT', results.chatgpt);
-            hasResults = true;
-        }
-        if (results.google && results.google.length > 0 && !results.google[0].title.startsWith("Error")) {
-             mainContent += createGoogleResultsCard(results.google);
-             hasResults = true;
-        }
-        mainContent += '</div>';
-        
-        if(!hasResults && !topContent) {
-            mainContent = `<div class="bg-yellow-100 p-4 rounded-lg">No results found. Check API keys in Settings.</div>`;
-        }
-
-        $('#results-area').innerHTML = topContent + mainContent;
-        if(hasResults) {
-            const btn = $('#start-synthesis-btn');
-            btn.classList.remove('hidden');
-            btn.addEventListener('click', openSynthesisModal);
+    function processRenderedResults() {
+        document.querySelectorAll('.ai-response-card .result-content').forEach(el => {
+            el.innerHTML = renderMarkdown(el.textContent);
+        });
+        const hasResults = document.querySelector('#synthesis-section .result-card');
+        const synthesisBtn = $('#start-synthesis-btn');
+        if (synthesisBtn) {
+            synthesisBtn.classList.toggle('hidden', !hasResults);
         }
     }
 
@@ -107,94 +100,203 @@
         const checkbox = e.target.closest('.article-checkbox');
         const groupToggle = e.target.closest('.group-toggle');
 
-        if (articleLink) {
-            e.preventDefault();
-            handleArticleClick(articleLink.dataset.id);
-        }
-        if (editBtn) {
-            e.preventDefault();
-            openEditModal(editBtn.dataset.id);
-        }
-        if (checkbox) {
-            updateBulkActionBar();
-        }
+        if (articleLink) { e.preventDefault(); handleArticleClick(articleLink.dataset.id); }
+        if (editBtn) { e.preventDefault(); openEditModal(editBtn.dataset.id); }
+        if (checkbox) { updateBulkActionBar(); }
         if(groupToggle) {
             const groupName = groupToggle.dataset.groupName;
             const articleList = groupToggle.nextElementSibling;
-            const chevron = groupToggle.querySelector('.chevron');
-            
-            articleList.classList.toggle('hidden');
-            chevron.classList.toggle('rotate-180');
-            
-            updateGroupState(groupName, articleList.classList.contains('hidden'));
+            const chevron = groupToggle.querySelector('.chevron-icon');
+            articleList.classList.toggle('collapsed');
+            groupToggle.classList.toggle('collapsed');
+            updateGroupState(groupName, articleList.classList.contains('collapsed'));
         }
     }
 
+    // MODIFIED: This function now correctly builds the "View Article" modal with the desired glass plane design.
     async function handleArticleClick(id) {
         const response = await fetch(`/get/article/${id}`);
         const article = await response.json();
         $('#modal-title').textContent = article.title;
-        
-        let contentHtml = `<h3>Synthesized Content</h3>${renderArticleContent(article.content)}`;
 
-        if (article.notes) contentHtml += `<h3 class="mt-6">Notes</h3>${renderMarkdown(article.notes)}`;
-        if (article.references) contentHtml += `<h3 class="mt-6">References</h3><ul>${article.references.split('\n').filter(Boolean).map(l => `<li><a href="${l}" target="_blank">${l}</a></li>`).join('')}</ul>`;
-        if (article.tags) contentHtml += `<div class="mt-6"><h3>Tags</h3>${article.tags.split(',').map(t => `<span class="bg-indigo-100 text-xs mr-2 px-2.5 py-0.5 rounded-full">${t.trim()}</span>`).join('')}</div>`;
+        let contentHtml = `<div class="space-y-4">`; // Main container for all sections
+
+        // Synthesized Content Plane
+        contentHtml += `
+            <div class="p-4 bg-black/20 rounded-lg border border-[var(--glass-border)]">
+                <h4 class="text-md font-semibold text-white mb-3">Synthesized Content</h4>
+                <div class="prose prose-invert prose-sm max-w-none">${renderArticleContent(article.content)}</div>
+            </div>`;
+
+        // Notes Plane
+        if (article.notes) {
+            contentHtml += `
+                <div class="p-4 bg-black/20 rounded-lg border border-[var(--glass-border)]">
+                    <h4 class="text-md font-semibold text-white mb-3">Notes</h4>
+                    <div class="prose prose-invert prose-sm max-w-none">${renderMarkdown(article.notes)}</div>
+                </div>`;
+        }
+
+        // References Plane
+        if (article.references) {
+            const referenceLines = article.references.split('\n').filter(Boolean);
+            const referenceListItems = referenceLines.map(line => {
+                // Extracts URL from markdown link like "- [text](url)" or handles plain URL
+                const match = line.match(/\[.*?\]\((.*?)\)/); 
+                const url = match ? match[1] : (line.trim().startsWith('- ') ? line.trim().substring(2) : line.trim());
+                return `<li><a href="${escapeHTML(url)}" target="_blank" class="text-indigo-400 hover:underline">${escapeHTML(url)}</a></li>`;
+            }).join('');
+
+             contentHtml += `
+                <div class="p-4 bg-black/20 rounded-lg border border-[var(--glass-border)]">
+                    <h4 class="text-md font-semibold text-white mb-3">References</h4>
+                    <div class="prose prose-invert prose-sm max-w-none"><ul>${referenceListItems}</ul></div>
+                </div>`;
+        }
+        
+        // Tags Plane
+        if (article.tags) {
+            contentHtml += `
+                <div class="p-4 bg-black/20 rounded-lg border border-[var(--glass-border)]">
+                    <h4 class="text-md font-semibold text-white mb-3">Tags</h4>
+                    <div class="flex flex-wrap gap-2">${article.tags.split(',').map(t => `<span class="bg-indigo-500/20 text-indigo-300 text-xs mr-2 px-2.5 py-0.5 rounded-full">${t.trim()}</span>`).join('')}</div>
+                </div>`;
+        }
+        
+        contentHtml += `</div>`; // Close main container
         
         $('#modal-content').innerHTML = contentHtml;
         openModal('article-modal');
     }
 
-    async function handleShareArticle() {
-        const title = $('#modal-title').textContent;
-        const content = $('#modal-content').innerText;
-        if (navigator.share) {
-            try {
-                await navigator.share({ title: title, text: `Article: ${title}\n\n${content}` });
-            } catch (error) { console.error('Share error:', error); }
-        } else {
-            try {
-                await navigator.clipboard.writeText(`Article: ${title}\n\n${content}`);
-                alert('Article content copied to clipboard!');
-            } catch (err) {
-                console.error('Clipboard copy failed:', err);
-                alert('Could not copy to clipboard.');
-            }
+    // --- "CREATE ARTICLE" MODAL LOGIC ---
+    function openCreateArticleModal() {
+        const selectedCheckboxes = $$('#synthesis-section input[type="checkbox"]:checked');
+        if (selectedCheckboxes.length === 0) {
+            alert('Please select one or more search results to create an article.');
+            return;
         }
-    }
-    
-    function buildGroupOptions(selectedId) {
-        let html = '';
-        const topLevel = allGroups.filter(g => g.parent_id === null);
+
+        const selectedContents = Array.from(selectedCheckboxes).map(cb => {
+            const card = cb.closest('.result-card');
+            const title = card.querySelector('.result-title')?.textContent || 'AI Response';
+            const content = cb.dataset.content;
+            return { title, content };
+        });
         
-        function renderOptions(groups, depth = 0) {
-            for (const group of groups) {
-                const isSelected = group.id === selectedId ? 'selected' : '';
-                const prefix = '&nbsp;&nbsp;'.repeat(depth);
-                html += `<option value="${group.id}" ${isSelected}>${prefix}${group.name}</option>`;
-                const children = allGroups.filter(g => g.parent_id === group.id);
-                if (children.length > 0) {
-                    renderOptions(children, depth + 1);
-                }
-            }
+        let selectedHtml = `
+            <div class="p-4 bg-black/20 rounded-lg border border-[var(--glass-border)]">
+                <h4 class="text-md font-semibold text-white mb-2">Selected Content</h4>
+                <div class="space-y-2 max-h-40 overflow-y-auto p-1 rounded-md">
+                    ${selectedContents.map(item => `
+                        <div class="p-2 border-b border-[var(--glass-border)]">
+                            <p class="font-semibold text-sm text-gray-200">${escapeHTML(item.title)}</p>
+                            <p class="text-xs text-gray-400 truncate">${escapeHTML(item.content)}</p>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>`;
+
+        const modalContent = `
+            ${selectedHtml}
+            <div class="p-4 bg-black/20 rounded-lg border border-[var(--glass-border)]">
+                <h4 class="text-md font-semibold text-white mb-3">Article Details</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><label class="block text-sm font-medium text-gray-300">Title</label><input type="text" id="create-title" class="mt-1 w-full rounded-md bg-transparent border-[var(--glass-border)] text-white placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></div>
+                    <div><label class="block text-sm font-medium text-gray-300">Group</label><select id="create-group-id" class="mt-1 w-full rounded-md bg-[#16213e] border-[var(--glass-border)] text-white placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">${buildGroupOptions()}</select></div>
+                </div>
+            </div>
+            <div class="p-4 bg-black/20 rounded-lg border border-[var(--glass-border)]">
+                 <h4 class="text-md font-semibold text-white mb-3">Notes & Tags</h4>
+                 <div><label class="block text-sm font-medium text-gray-300">Notes (Markdown supported)</label><textarea id="create-notes" rows="4" class="mt-1 w-full rounded-md bg-transparent border-[var(--glass-border)] text-white placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea></div>
+                 <div class="mt-4">
+                    <label class="block text-sm font-medium text-gray-300">Tags (comma-separated)</label>
+                    <input type="text" id="create-tags" class="mt-1 w-full rounded-md bg-transparent border-[var(--glass-border)] text-white placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    <div id="create-tags-container" class="mt-2 flex flex-wrap gap-2"></div>
+                </div>
+            </div>
+            <div class="p-4 bg-black/20 rounded-lg border border-[var(--glass-border)]">
+                <h4 class="text-md font-semibold text-white mb-3">References</h4>
+                <div id="references-container" class="space-y-2 mt-1"></div>
+                <button type="button" id="add-reference-btn" class="mt-2 text-sm text-indigo-400 hover:text-indigo-300">+ Add URL</button>
+            </div>
+        `;
+        
+        $('#create-article-modal-content').innerHTML = modalContent;
+        $('#create-title').value = $('#question-input').value;
+        renderTagButtons('create-tags-container', 'create-tags');
+
+        const references = Array.from(selectedCheckboxes)
+            .map(cb => cb.dataset.link)
+            .filter(Boolean);
+        if (references.length > 0) {
+            references.forEach(url => addReferenceField(url));
+        } else {
+            addReferenceField();
         }
-        renderOptions(topLevel);
-        return html;
+
+        $('#confirm-create-btn').onclick = handleConfirmCreateArticle;
+        openModal('create-article-modal');
     }
 
+    function addReferenceField(url = '', name = '') {
+        const container = $('#references-container');
+        const newField = document.createElement('div');
+        newField.className = 'flex items-center gap-2 reference-field-group';
+        newField.innerHTML = `
+            <input type="text" placeholder="URL" value="${escapeHTML(url)}" class="flex-1 w-full text-sm rounded-md bg-transparent border-[var(--glass-border)] text-white placeholder-gray-400 reference-url">
+            <input type="text" placeholder="Optional Name" value="${escapeHTML(name)}" class="flex-1 w-full text-sm rounded-md bg-transparent border-[var(--glass-border)] text-white placeholder-gray-400 reference-name">
+            <button type="button" class="p-1 text-red-500 hover:text-red-400 remove-reference-btn text-2xl font-bold">&times;</button>
+        `;
+        container.appendChild(newField);
+    }
+
+    async function handleConfirmCreateArticle() {
+        const selectedContents = Array.from($$('#synthesis-section input[type="checkbox"]:checked')).map(cb => cb.dataset.content);
+        const references = Array.from($$('.reference-field-group')).map(group => ({
+            url: group.querySelector('.reference-url').value,
+            name: group.querySelector('.reference-name').value
+        })).filter(ref => ref.url.trim() !== '');
+
+        const payload = {
+            title: $('#create-title').value, group_id: $('#create-group-id').value,
+            notes: $('#create-notes').value, tags: $('#create-tags').value,
+            texts: selectedContents, references: references
+        };
+
+        if (!payload.title || !payload.group_id) {
+            alert('Title and Group are required.');
+            return;
+        }
+
+        const btn = $('#confirm-create-btn');
+        btn.disabled = true;
+        btn.textContent = 'Creating...';
+
+        await fetch('/create_article', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        location.reload();
+    }
+    
+    // --- Other Functions ---
     async function openEditModal(id) {
         const res = await fetch(`/get/article/${id}`);
         const article = await res.json();
         const content = `
-            <input type="hidden" id="edit-id" value="${article.id}">
-            <div><label class="block text-sm font-medium">Title</label><input type="text" id="edit-title" value="${escapeHTML(article.title)}" class="mt-1 w-full rounded-md border-gray-300"></div>
-            <div><label class="block text-sm font-medium">Group</label><select id="edit-group-id" class="mt-1 w-full rounded-md border-gray-300">${buildGroupOptions(article.group_id)}</select></div>
-            <div><label class="block text-sm font-medium">Notes</label><textarea id="edit-notes" rows="4" class="mt-1 w-full rounded-md border-gray-300">${escapeHTML(article.notes)}</textarea></div>
-            <div><label class="block text-sm font-medium">References</label><textarea id="edit-references" rows="2" class="mt-1 w-full rounded-md border-gray-300">${escapeHTML(article.references)}</textarea></div>
-            <div>
-                <label class="block text-sm font-medium">Tags</label>
-                <input type="text" id="edit-tags" value="${escapeHTML(article.tags)}" class="mt-1 w-full rounded-md border-gray-300">
-                <div id="edit-tags-container" class="mt-2 flex flex-wrap gap-2"></div>
+            <div class="p-4 bg-black/20 rounded-lg border border-[var(--glass-border)] space-y-4">
+                 <div><label class="block text-sm font-medium text-gray-300">Title</label><input type="text" id="edit-title" value="${escapeHTML(article.title)}" class="mt-1 w-full rounded-md bg-transparent border-[var(--glass-border)] text-white placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></div>
+                <div><label class="block text-sm font-medium text-gray-300">Group</label><select id="edit-group-id" class="mt-1 w-full rounded-md bg-[#16213e] border-[var(--glass-border)] text-white placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">${buildGroupOptions(article.group_id)}</select></div>
+            </div>
+            <div class="p-4 bg-black/20 rounded-lg border border-[var(--glass-border)] space-y-4">
+                <div><label class="block text-sm font-medium text-gray-300">Notes</label><textarea id="edit-notes" rows="4" class="mt-1 w-full rounded-md bg-transparent border-[var(--glass-border)] text-white placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">${escapeHTML(article.notes)}</textarea></div>
+                <div><label class="block text-sm font-medium text-gray-300">References</label><textarea id="edit-references" rows="2" class="mt-1 w-full rounded-md bg-transparent border-[var(--glass-border)] text-white placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">${escapeHTML(article.references)}</textarea></div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300">Tags</label>
+                    <input type="text" id="edit-tags" value="${escapeHTML(article.tags)}" class="mt-1 w-full rounded-md bg-transparent border-[var(--glass-border)] text-white placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    <div id="edit-tags-container" class="mt-2 flex flex-wrap gap-2"></div>
+                </div>
             </div>
         `;
         $('#edit-modal-content').innerHTML = content;
@@ -203,7 +305,6 @@
         $('#open-share-modal-btn').onclick = () => openShareModal(id);
         openModal('edit-modal');
     }
-
     async function handleConfirmEdit() {
         const id = $('#edit-id').value;
         const payload = {
@@ -215,133 +316,39 @@
         });
         location.reload();
     }
-
     async function openShareModal(articleId) {
         const res = await fetch(`/article/sharing_details/${articleId}`);
         const data = await res.json();
-        if (data.error) {
-            alert(data.error);
-            return;
-        }
-
+        if (data.error) { alert(data.error); return; }
         let content = `<input type="hidden" id="share-article-id" value="${articleId}">`;
         data.roles.forEach(role => {
             content += `
-                <div>
-                    <label class="flex items-center">
-                        <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 share-role-checkbox" value="${role.id}" ${role.shared ? 'checked' : ''}>
+                <div><label class="flex items-center">
+                        <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 share-role-checkbox" value="${role.id}" ${role.shared ? 'checked' : ''}>
                         <span class="ml-2 text-sm">${role.name}</span>
-                    </label>
-                </div>`;
+                </label></div>`;
         });
-
         $('#share-modal-content').innerHTML = content;
         $('#confirm-share-btn').onclick = handleConfirmShare;
         openModal('share-modal');
     }
-
     async function handleConfirmShare() {
         const articleId = $('#share-article-id').value;
         const roleIds = Array.from($$('.share-role-checkbox:checked')).map(cb => cb.value);
-        
         await fetch('/article/share', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ article_id: articleId, role_ids: roleIds })
         });
         closeModal('share-modal');
         location.reload();
     }
-
-    function openSynthesisModal() {
-        const selectedCheckboxes = $$('#synthesis-section input:checked');
-        if (selectedCheckboxes.length === 0) return alert('Please select results to create an article.');
-        const content = `
-            <div class="flex items-end gap-2">
-                <div class="flex-grow">
-                    <label class="block text-sm font-medium">Group</label>
-                    <select id="new-group-id" class="mt-1 w-full rounded-md border-gray-300">${buildGroupOptions()}</select>
-                </div>
-                <button id="add-group-toggle-btn" class="flex-shrink-0 p-2 bg-gray-200 rounded-md hover:bg-gray-300">+</button>
-            </div>
-            <div id="add-group-form" class="hidden p-3 mt-2 border rounded-md bg-gray-50 space-y-2">
-                <label class="block text-sm font-medium">New Group Name</label>
-                <input type="text" id="new-group-name" placeholder="New group name..." class="w-full text-sm rounded-md border-gray-300">
-                <label class="block text-sm font-medium">Parent Group (Optional)</label>
-                <select id="new-group-parent-id" class="w-full text-sm rounded-md border-gray-300"><option value="">None (Top-level)</option>${buildGroupOptions()}</select>
-                <button id="add-group-confirm-btn" class="text-sm bg-green-500 text-white px-3 py-1 rounded-md">Add</button>
-            </div>
-            <div><label class="block text-sm font-medium">Title</label><input type="text" id="new-title" class="mt-1 w-full rounded-md border-gray-300"></div>
-            <div><label class="block text-sm font-medium">Notes</label><textarea id="new-notes" rows="4" class="mt-1 w-full rounded-md border-gray-300"></textarea></div>
-            <div><label class="block text-sm font-medium">References</label><textarea id="new-references" rows="2" class="mt-1 w-full rounded-md border-gray-300"></textarea></div>
-            <div>
-                <label class="block text-sm font-medium">Tags</label>
-                <input type="text" id="new-tags" class="mt-1 w-full rounded-md border-gray-300">
-                <div id="new-tags-container" class="mt-2 flex flex-wrap gap-2"></div>
-            </div>
-        `;
-        $('#synthesis-modal-content').innerHTML = content;
-        
-        $('#new-title').value = $('#question-input').value;
-
-        const references = Array.from(selectedCheckboxes)
-            .map(cb => cb.dataset.link)
-            .filter(Boolean);
-        if (references.length > 0) {
-            $('#new-references').value = references.join('\n');
-        }
-
-        renderTagButtons('new-tags-container', 'new-tags');
-        $('#confirm-synthesis-btn').onclick = handleConfirmSynthesis;
-        $('#add-group-toggle-btn').onclick = () => $('#add-group-form').classList.toggle('hidden');
-        $('#add-group-confirm-btn').onclick = handleAddGroupInModal;
-        openModal('synthesis-modal');
-    }
-    
-    async function handleAddGroupInModal() {
-        const name = $('#new-group-name').value;
-        const parentId = $('#new-group-parent-id').value;
-        if (!name) return;
-        
-        const formData = new FormData();
-        formData.append('name', name);
-        formData.append('parent_id', parentId);
-
-        await fetch('/group/add', { method: 'POST', body: formData });
-        
-        alert('Group added! The page will now reload to update the group list.');
-        location.reload();
-    }
-
-    async function handleConfirmSynthesis() {
-        const textsToSynthesize = Array.from($$('#synthesis-section input:checked')).map(checkbox => checkbox.dataset.content);
-        const payload = {
-            title: $('#new-title').value, group_id: $('#new-group-id').value,
-            notes: $('#new-notes').value, references: $('#new-references').value, tags: $('#new-tags').value,
-            texts: textsToSynthesize
-        };
-        if (!payload.title || !payload.group_id) return alert('Title and Group are required.');
-        
-        const btn = $('#confirm-synthesis-btn');
-        btn.disabled = true;
-        btn.textContent = 'Saving...';
-
-        await fetch('/synthesize', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
-        });
-        location.reload();
-    }
-    
     async function handleBulkAction(action) {
         const ids = Array.from($$('.article-checkbox:checked')).map(cb => cb.dataset.id);
         if (ids.length === 0) return;
-        
         let payload = { action, ids };
         if (action === 'update') {
             payload.data = {
-                notes: $('#bulk-notes').value,
-                references: $('#bulk-references').value,
-                tags: $('#bulk-tags').value,
+                notes: $('#bulk-notes').value, references: $('#bulk-references').value, tags: $('#bulk-tags').value,
                 share_mode: $('#bulk-share-mode').value,
                 role_ids: Array.from($$('#bulk-roles-container input:checked')).map(cb => cb.value)
             };
@@ -349,79 +356,71 @@
         } else if (action === 'delete') {
             if (!confirm(`Are you sure you want to delete ${ids.length} articles?`)) return;
         }
-
         await fetch('/bulk_action', {
             method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
         });
         location.reload();
     }
-    
     function handleSelectAll(e) {
         $$('.article-checkbox').forEach(checkbox => checkbox.checked = e.target.checked);
         updateBulkActionBar();
     }
-
     function updateBulkActionBar() {
         const count = $$('.article-checkbox:checked').length;
         $('#selection-count').textContent = count;
         $('#bulk-actions-bar').classList.toggle('hidden', count === 0);
     }
-    
     async function populateBulkShareRoles() {
         const container = $('#bulk-roles-container');
         const res = await fetch('/get/roles');
         const roles = await res.json();
-        container.innerHTML = roles.map(role => `
-            <label class="flex items-center">
-                <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600" value="${role.id}">
-                <span class="ml-2 text-sm">${role.name}</span>
-            </label>
-        `).join('');
+        container.innerHTML = roles.map(role => `<label class="flex items-center"><input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600" value="${role.id}"><span class="ml-2 text-sm">${role.name}</span></label>`).join('');
     }
-
-    // --- UI & Modal ---
+    function buildGroupOptions(selectedId) {
+        let html = '';
+        const topLevel = allGroups.filter(g => g.parent_id === null);
+        function renderOptions(groups, depth = 0) {
+            for (const group of groups) {
+                const isSelected = group.id === selectedId ? 'selected' : '';
+                const prefix = '&nbsp;&nbsp;'.repeat(depth);
+                html += `<option value="${group.id}" ${isSelected}>${prefix}${group.name}</option>`;
+                const children = allGroups.filter(g => g.parent_id === group.id);
+                if (children.length > 0) renderOptions(children, depth + 1);
+            }
+        }
+        renderOptions(topLevel);
+        return html;
+    }
     function openModal(id) {
         const modal = $(`#${id}`);
         if (!modal) return;
-        
         $('#modal-backdrop').classList.remove('hidden');
         modal.classList.remove('hidden');
-        
         void modal.offsetWidth; 
-
         modal.classList.add('modal-enter-active');
         modal.classList.remove('modal-enter');
     }
-
     function closeModal(id) {
         const modal = $(`#${id}`);
         if (!modal) return;
-
         modal.classList.add('modal-leave-active');
         modal.classList.remove('modal-enter-active');
-
         setTimeout(() => {
-            // Clear inputs only on synthesis modal close
-            if (id === 'synthesis-modal') {
-                ['new-title', 'new-group-id', 'new-notes', 'new-references', 'new-tags'].forEach(inputId => {
-                    const el = $(`#${inputId}`);
-                    if (el) el.value = '';
-                });
-                const btn = $('#confirm-synthesis-btn');
+            if (id === 'create-article-modal') {
+                $('#create-article-modal-content').innerHTML = '';
+                const btn = $('#confirm-create-btn');
                 btn.disabled = false;
-                btn.textContent = 'Create Article';
+                btn.textContent = 'Create KB Article';
             }
-
             $('#modal-backdrop').classList.add('hidden');
             modal.classList.add('hidden');
             modal.classList.remove('modal-leave-active');
             modal.classList.add('modal-enter');
         }, 200);
     }
-    
     function renderTagButtons(containerId, inputId) {
         const container = $(`#${containerId}`);
-        container.innerHTML = allTags.map(tag => `<button class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded-full" data-tag="${escapeHTML(tag)}">${escapeHTML(tag)}</button>`).join('');
+        container.innerHTML = allTags.map(tag => `<button type="button" class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded-full" data-tag="${escapeHTML(tag)}">${escapeHTML(tag)}</button>`).join('');
         container.addEventListener('click', e => {
             if (e.target.tagName === 'BUTTON') {
                 const tag = e.target.dataset.tag;
@@ -432,70 +431,62 @@
             }
         });
     }
-    
-    function createResultCard(id, title, content) {
-        return `<div class="bg-white/80 p-5 rounded-lg border"><label for="check-${id}" class="flex items-start cursor-pointer"><input type="checkbox" id="check-${id}" class="mt-1 h-5 w-5" data-content="${escapeHTML(content)}"><div class="ml-4"><h4 class="font-bold text-lg text-indigo-700">${title}</h4><div class="mt-2 text-gray-600 prose-styles">${renderMarkdown(content)}</div></div></label></div>`;
-    }
-    function createGoogleResultsCard(items) {
-        const googleItems = items.map((item, i) => {
-            const content = `Title: ${item.title}\nSnippet: ${item.snippet}\nLink: ${item.link}`;
-            return `<div class="border-t pt-4 mt-4 first:mt-0 first:border-t-0 first:pt-0"><label for="check-google-${i}" class="flex items-start cursor-pointer"><input type="checkbox" id="check-google-${i}" class="mt-1 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" data-content="${escapeHTML(content)}" data-link="${escapeHTML(item.link)}"><div class="ml-3 flex-1"><p class="font-semibold text-gray-800 bg-yellow-100 p-2 rounded-md">${escapeHTML(item.title)}</p><p class="text-sm mt-2 text-gray-600">${escapeHTML(item.snippet)}</p><div class="mt-2"><a href="${item.link}" target="_blank" class="inline-block text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full hover:bg-blue-200 font-medium">Source Link</a></div></div></label></div>`
-        }).join('');
-        return `<div class="bg-white/80 p-5 rounded-lg border"><h4 class="font-bold text-lg text-blue-700">Google Search</h4><div class="mt-2">${googleItems}</div></div>`;
-    }
-    function createLocalKBResultsCard(items) {
-        const localItems = items.map((item, i) => {
-            const content = item.content;
-            return `<div class="border-t pt-4 mt-4 first:mt-0 first:border-t-0 first:pt-0"><label for="check-local-${i}" class="flex items-start cursor-pointer"><input type="checkbox" id="check-local-${i}" class="mt-1 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" data-content="${escapeHTML(content)}"><div class="ml-3 flex-1"><p class="font-semibold text-gray-800">${escapeHTML(item.title)}</p><p class="text-sm mt-2 text-gray-600">${renderMarkdown(content.substring(0, 150) + '...')}</p><div class="mt-2"><button onclick="handleArticleClick(${item.id})" class="inline-block text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full hover:bg-green-200 font-medium">View Full Article</button></div></div></label></div>`
-        }).join('');
-        return `<div class="bg-white/80 p-5 rounded-lg border"><h4 class="font-bold text-lg text-green-700">From Your Knowledge Base</h4><div class="mt-2">${localItems}</div></div>`;
-    }
     function escapeHTML(str) { 
         return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
     }
     function renderMarkdown(text) {
         if (window.marked) {
-            const html = marked.parse(text || '');
+            const html = marked.parse(text || '', { breaks: true }); // Enable line breaks
             const container = document.createElement('div');
             container.innerHTML = html;
-            container.querySelectorAll('pre code').forEach((block) => {
-                hljs.highlightElement(block);
-            });
+            container.querySelectorAll('pre code').forEach((block) => { hljs.highlightElement(block); });
             return container.innerHTML;
         }
-        let html = escapeHTML(text || '');
-        return html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+        return escapeHTML(text || '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
     }
+
+    // MODIFIED: This function now correctly un-escapes newlines and renders the source snippets in the desired "glass box" style.
     function renderArticleContent(content) {
         const parts = content.split('\n\n---\n\n');
         let html = '';
         parts.forEach(part => {
-            const match = part.match(/^Title: (.*?)\nSnippet: (.*?)\nLink: (.*)$/);
+            // Un-escape literal "\\n" sequences into actual newlines for robust parsing
+            const unescapedPart = part.replace(/\\n/g, '\n');
+            const match = unescapedPart.match(/^Title: (.*?)\nSnippet: (.*?)\nLink: (.*)$/s);
+            
             if (match) {
                 const [, title, snippet, link] = match;
-                html += `<div class="border rounded-lg p-4 my-4"><p class="font-semibold text-gray-800 bg-yellow-100 p-2 rounded-md">${escapeHTML(title)}</p><p class="text-sm mt-2 text-gray-600">${escapeHTML(snippet)}</p><div class="mt-2"><a href="${escapeHTML(link)}" target="_blank" class="inline-block text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full hover:bg-blue-200 font-medium">Source Link</a></div></div>`;
+                html += `
+                    <div class="bg-black/20 border border-[var(--glass-border)] rounded-lg p-4 my-4">
+                        <p class="font-semibold text-indigo-300">${escapeHTML(title)}</p>
+                        <p class="text-sm mt-2 text-gray-300">${escapeHTML(snippet)}</p>
+                        <div class="mt-3">
+                            <a href="${escapeHTML(link)}" target="_blank" class="inline-block text-xs bg-blue-500/20 text-blue-300 px-3 py-1 rounded-full hover:bg-blue-500/40 font-medium">
+                                View Source
+                            </a>
+                        </div>
+                    </div>`;
             } else {
                 html += renderMarkdown(part);
             }
         });
         return html;
     }
+
     function restoreGroupStates() {
         const collapsedGroups = JSON.parse(localStorage.getItem('collapsedGroups')) || [];
         $$('.group-toggle').forEach(toggle => {
             const groupName = toggle.dataset.groupName;
             if (collapsedGroups.includes(groupName)) {
-                toggle.nextElementSibling.classList.add('hidden');
-                toggle.querySelector('.chevron').classList.add('rotate-180');
+                toggle.nextElementSibling.classList.add('collapsed');
+                toggle.classList.add('collapsed');
             }
         });
     }
     function updateGroupState(groupName, isCollapsed) {
         let collapsedGroups = JSON.parse(localStorage.getItem('collapsedGroups')) || [];
         if (isCollapsed) {
-            if (!collapsedGroups.includes(groupName)) {
-                collapsedGroups.push(groupName);
-            }
+            if (!collapsedGroups.includes(groupName)) collapsedGroups.push(groupName);
         } else {
             collapsedGroups = collapsedGroups.filter(name => name !== groupName);
         }
