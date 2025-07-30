@@ -1,40 +1,39 @@
 <!-- Modals Container -->
-<!-- MODIFIED: Replaced Tailwind classes with a custom class for styling in glassy-styles.css -->
-<div id="modal-backdrop" class="modal-backdrop hidden"></div>
+<!-- MODIFIED: Using Tailwind classes for positioning and styling -->
+<div id="modal-backdrop" class="fixed inset-0 bg-black bg-opacity-75 hidden z-[1000] transition-opacity duration-300"></div>
 
 <!-- Article Viewing Modal -->
-<!-- MODIFIED: Replaced Tailwind classes with a custom class -->
-<div id="article-modal" class="modal hidden modal-enter">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
-        <div class="p-4 border-b flex justify-between items-center">
-            <h2 id="modal-title" class="text-2xl font-bold text-gray-900"></h2>
+<!-- MODIFIED: Using Tailwind classes for positioning and styling -->
+<div id="article-modal" class="fixed inset-0 flex items-center justify-center p-4 hidden z-[1001] modal-enter">
+    <div class="bg-[#16213e] border border-[var(--glass-border)] rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col text-gray-200">
+        <div class="p-4 border-b border-[var(--glass-border)] flex justify-between items-center">
+            <h2 id="modal-title" class="text-2xl font-bold text-white"></h2>
             <div class="flex items-center gap-2">
-                <button id="share-article-btn" class="p-2 text-gray-500 hover:text-indigo-600 rounded-full hover:bg-gray-100" title="Share or Copy">
+                <button id="share-article-btn" class="p-2 text-gray-400 hover:text-white rounded-full hover:bg-white/10" title="Share or Copy">
                     <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 100 4.186m0-4.186a2.25 2.25 0 110 4.186m2.25-4.186a2.25 2.25 0 000-4.186m0 4.186c.331 0 .653.064.95.182m0-4.364a2.25 2.25 0 010 4.186m-9.5 0a2.25 2.25 0 000 4.186m0-4.186a2.25 2.25 0 010-4.186" /></svg>
                 </button>
-                <button onclick="closeModal('article-modal')" class="p-2 text-gray-400 hover:text-gray-800 rounded-full hover:bg-gray-100" title="Close">
+                <button onclick="closeModal('article-modal')" class="p-2 text-gray-400 hover:text-white rounded-full hover:bg-white/10" title="Close">
                     <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
             </div>
         </div>
         <div id="modal-content" class="p-6 overflow-y-auto prose-styles"></div>
-        <div class="p-4 bg-gray-50 border-t text-right rounded-b-xl">
-             <button onclick="closeModal('article-modal')" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Close</button>
+        <div class="p-4 bg-black/20 border-t border-[var(--glass-border)] text-right rounded-b-xl">
+             <button onclick="closeModal('article-modal')" class="rounded-md bg-white/10 px-3 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-inset ring-white/20 hover:bg-white/20">Close</button>
         </div>
     </div>
 </div>
 
 <!-- Create Article Modal -->
-<!-- MODIFIED: Replaced Tailwind classes with a custom class -->
-<div id="create-article-modal" class="modal hidden modal-enter">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
-        <h3 class="p-6 border-b text-xl font-medium text-gray-900">Create New KB Article</h3>
+<!-- MODIFIED: Using Tailwind classes for positioning and styling -->
+<div id="create-article-modal" class="fixed inset-0 flex items-center justify-center p-4 hidden z-[1001] modal-enter">
+    <div class="bg-[#16213e] border border-[var(--glass-border)] rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col text-gray-200">
+        <h3 class="p-6 border-b border-[var(--glass-border)] text-xl font-medium text-white">Create New KB Article</h3>
         <div class="p-6 space-y-4 overflow-y-auto">
-            <!-- This content will be populated by JavaScript -->
             <div id="create-article-modal-content"></div>
         </div>
-        <div class="bg-gray-50 px-6 py-4 flex justify-end space-x-3 rounded-b-xl border-t">
-            <button onclick="closeModal('create-article-modal')" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Cancel</button>
+        <div class="bg-black/20 px-6 py-4 flex justify-end space-x-3 rounded-b-xl border-t border-[var(--glass-border)]">
+            <button onclick="closeModal('create-article-modal')" class="rounded-md bg-white/10 px-3 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-inset ring-white/20 hover:bg-white/20">Cancel</button>
             <button id="confirm-create-btn" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">Create KB Article</button>
         </div>
     </div>
@@ -42,15 +41,15 @@
 
 
 <!-- Edit Article Modal -->
-<!-- MODIFIED: Replaced Tailwind classes with a custom class -->
-<div id="edit-modal" class="modal hidden modal-enter">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-        <h3 class="p-6 border-b text-xl font-medium text-gray-900">Edit Article</h3>
+<!-- MODIFIED: Using Tailwind classes for positioning and styling -->
+<div id="edit-modal" class="fixed inset-0 flex items-center justify-center p-4 hidden z-[1001] modal-enter">
+    <div class="bg-[#16213e] border border-[var(--glass-border)] rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col text-gray-200">
+        <h3 class="p-6 border-b border-[var(--glass-border)] text-xl font-medium text-white">Edit Article</h3>
         <div id="edit-modal-content" class="p-6 space-y-4 overflow-y-auto"></div>
-        <div class="bg-gray-50 px-6 py-4 flex justify-between items-center rounded-b-xl border-t">
-            <button id="open-share-modal-btn" class="rounded-md bg-gray-200 px-3 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-300">Share</button>
+        <div class="bg-black/20 px-6 py-4 flex justify-between items-center rounded-b-xl border-t border-[var(--glass-border)]">
+            <button id="open-share-modal-btn" class="rounded-md bg-white/20 px-3 py-2 text-sm font-semibold text-white hover:bg-white/30">Share</button>
             <div class="space-x-3">
-                <button onclick="closeModal('edit-modal')" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Cancel</button>
+                <button onclick="closeModal('edit-modal')" class="rounded-md bg-white/10 px-3 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-inset ring-white/20 hover:bg-white/20">Cancel</button>
                 <button id="confirm-edit-btn" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">Save Changes</button>
             </div>
         </div>
@@ -58,46 +57,46 @@
 </div>
 
 <!-- Share Article Modal -->
-<!-- MODIFIED: Replaced Tailwind classes with a custom class -->
-<div id="share-modal" class="modal hidden modal-enter">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md">
-        <h3 class="p-6 border-b text-xl font-medium text-gray-900">Share Article</h3>
+<!-- MODIFIED: Using Tailwind classes for positioning and styling -->
+<div id="share-modal" class="fixed inset-0 flex items-center justify-center p-4 hidden z-[1001] modal-enter">
+    <div class="bg-[#16213e] border border-[var(--glass-border)] rounded-xl shadow-2xl w-full max-w-md text-gray-200">
+        <h3 class="p-6 border-b border-[var(--glass-border)] text-xl font-medium text-white">Share Article</h3>
         <div id="share-modal-content" class="p-6 space-y-3"></div>
-        <div class="bg-gray-50 px-6 py-4 flex justify-end space-x-3 rounded-b-xl border-t">
-            <button onclick="closeModal('share-modal')" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Cancel</button>
+        <div class="bg-black/20 px-6 py-4 flex justify-end space-x-3 rounded-b-xl border-t border-[var(--glass-border)]">
+            <button onclick="closeModal('share-modal')" class="rounded-md bg-white/10 px-3 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-inset ring-white/20 hover:bg-white/20">Cancel</button>
             <button id="confirm-share-btn" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">Save Sharing</button>
         </div>
     </div>
 </div>
 
 <!-- Bulk Update Modal -->
-<!-- MODIFIED: Replaced Tailwind classes with a custom class -->
-<div id="bulk-update-modal" class="modal hidden modal-enter">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-        <h3 class="p-6 border-b text-xl font-medium text-gray-900">Bulk Update Articles</h3>
+<!-- MODIFIED: Using Tailwind classes for positioning and styling -->
+<div id="bulk-update-modal" class="fixed inset-0 flex items-center justify-center p-4 hidden z-[1001] modal-enter">
+    <div class="bg-[#16213e] border border-[var(--glass-border)] rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col text-gray-200">
+        <h3 class="p-6 border-b border-[var(--glass-border)] text-xl font-medium text-white">Bulk Update Articles</h3>
         <div class="p-6 space-y-4 overflow-y-auto">
-            <p class="text-sm text-gray-600">Add information to all selected articles. Existing content will be kept.</p>
+            <p class="text-sm text-gray-400">Add information to all selected articles. Existing content will be kept.</p>
             <div>
-                <label for="bulk-notes" class="block text-sm font-medium text-gray-700">Notes to Add</label>
-                <textarea id="bulk-notes" rows="4" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea>
+                <label for="bulk-notes" class="block text-sm font-medium text-gray-300">Notes to Add</label>
+                <textarea id="bulk-notes" rows="4" class="mt-1 block w-full rounded-md bg-transparent border-[var(--glass-border)] shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea>
             </div>
             <div>
-                <label for="bulk-references" class="block text-sm font-medium text-gray-700">References to Add</label>
-                <textarea id="bulk-references" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea>
+                <label for="bulk-references" class="block text-sm font-medium text-gray-300">References to Add</label>
+                <textarea id="bulk-references" rows="2" class="mt-1 block w-full rounded-md bg-transparent border-[var(--glass-border)] shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea>
             </div>
             <div>
-                <label for="bulk-tags" class="block text-sm font-medium text-gray-700">Tags to Add</label>
-                <input type="text" id="bulk-tags" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                <label for="bulk-tags" class="block text-sm font-medium text-gray-300">Tags to Add</label>
+                <input type="text" id="bulk-tags" class="mt-1 block w-full rounded-md bg-transparent border-[var(--glass-border)] shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                 <div id="bulk-tags-container" class="mt-2 flex flex-wrap gap-2"></div>
             </div>
-            <div class="border-t pt-4">
-                <h4 class="text-sm font-medium text-gray-700">Sharing Options</h4>
+            <div class="border-t border-[var(--glass-border)] pt-4">
+                <h4 class="text-sm font-medium text-gray-300">Sharing Options</h4>
                 <div class="mt-2 space-y-2">
                     <div>
                         <label class="block text-sm font-medium">Mode</label>
-                        <select id="bulk-share-mode" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            <option value="add">Add to existing roles</option>
-                            <option value="replace">Replace all roles</option>
+                        <select id="bulk-share-mode" class="mt-1 block w-full rounded-md bg-transparent border-[var(--glass-border)] shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option>Add to existing roles</option>
+                            <option>Replace all roles</option>
                         </select>
                     </div>
                     <div>
@@ -107,8 +106,8 @@
                 </div>
             </div>
         </div>
-        <div class="bg-gray-50 px-6 py-4 flex justify-end space-x-3 rounded-b-xl border-t">
-            <button onclick="closeModal('bulk-update-modal')" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Cancel</button>
+        <div class="bg-black/20 px-6 py-4 flex justify-end space-x-3 rounded-b-xl border-t border-[var(--glass-border)]">
+            <button onclick="closeModal('bulk-update-modal')" class="rounded-md bg-white/10 px-3 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-inset ring-white/20 hover:bg-white/20">Cancel</button>
             <button id="confirm-bulk-update-btn" class="rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500">Update Articles</button>
         </div>
     </div>

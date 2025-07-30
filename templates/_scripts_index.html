@@ -20,20 +20,10 @@
     $('#confirm-bulk-update-btn').addEventListener('click', () => handleBulkAction('update'));
     
     // --- Delegated Event Listeners on Body ---
-    // This is the section that "tells" the green button what to do.
-    // It listens for any click on the page and checks if the click happened on the button.
     document.body.addEventListener('click', function(e) {
-        // DEBUG: Log any click on the body to see if events are firing at all
-        console.log("Body clicked. Target:", e.target);
-
-        if (e.target.id === 'share-article-btn') {
-            handleShareArticle();
-        }
+        if (e.target.id === 'share-article-btn') handleShareArticle();
         
-        // This is the specific check for the green "Create Article" button
         if (e.target.closest('#start-synthesis-btn')) {
-            // DEBUG: Confirm the button click is being specifically identified
-            console.log("Create Article button was clicked or a child of it was.");
             e.preventDefault();
             openCreateArticleModal();
         }
@@ -135,19 +125,10 @@
         openModal('article-modal');
     }
 
-    // --- NEW "CREATE ARTICLE" MODAL LOGIC ---
+    // --- "CREATE ARTICLE" MODAL LOGIC ---
     function openCreateArticleModal() {
-        // DEBUG: Confirm the function is being entered
-        console.log("openCreateArticleModal function started.");
-
         const selectedCheckboxes = $$('#synthesis-section input[type="checkbox"]:checked');
-        
-        // DEBUG: Log how many checkboxes were found
-        console.log(`Found ${selectedCheckboxes.length} selected checkboxes.`);
-
         if (selectedCheckboxes.length === 0) {
-            console.error('No results were selected. Halting modal opening.');
-            // This alert is for user feedback in case the console isn't open.
             alert('Please select one or more search results to create an article.');
             return;
         }
@@ -159,28 +140,42 @@
             return { title, content };
         });
         
-        let selectedHtml = '<h4 class="text-md font-semibold text-gray-800 mb-2">Selected Content</h4><div class="space-y-2 max-h-40 overflow-y-auto bg-gray-50 p-3 rounded-md border">';
-        selectedContents.forEach(item => {
-            selectedHtml += `<div class="p-2 border-b"><p class="font-semibold text-sm">${escapeHTML(item.title)}</p><p class="text-xs text-gray-600 truncate">${escapeHTML(item.content)}</p></div>`;
-        });
-        selectedHtml += '</div>';
+        // MODIFIED: Wrapped each section in a styled "glass plane" div for visual separation
+        let selectedHtml = `
+            <div class="p-4 bg-black/20 rounded-lg border border-[var(--glass-border)]">
+                <h4 class="text-md font-semibold text-white mb-2">Selected Content</h4>
+                <div class="space-y-2 max-h-40 overflow-y-auto p-1 rounded-md">
+                    ${selectedContents.map(item => `
+                        <div class="p-2 border-b border-[var(--glass-border)]">
+                            <p class="font-semibold text-sm text-gray-200">${escapeHTML(item.title)}</p>
+                            <p class="text-xs text-gray-400 truncate">${escapeHTML(item.content)}</p>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>`;
 
         const modalContent = `
             ${selectedHtml}
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
-                <div><label class="block text-sm font-medium">Title</label><input type="text" id="create-title" class="mt-1 w-full rounded-md border-gray-300"></div>
-                <div><label class="block text-sm font-medium">Group</label><select id="create-group-id" class="mt-1 w-full rounded-md border-gray-300">${buildGroupOptions()}</select></div>
+            <div class="p-4 bg-black/20 rounded-lg border border-[var(--glass-border)]">
+                <h4 class="text-md font-semibold text-white mb-3">Article Details</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><label class="block text-sm font-medium text-gray-300">Title</label><input type="text" id="create-title" class="mt-1 w-full rounded-md bg-transparent border-[var(--glass-border)] text-white placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></div>
+                    <div><label class="block text-sm font-medium text-gray-300">Group</label><select id="create-group-id" class="mt-1 w-full rounded-md bg-[#16213e] border-[var(--glass-border)] text-white placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">${buildGroupOptions()}</select></div>
+                </div>
             </div>
-            <div><label class="block text-sm font-medium">Notes (Markdown supported)</label><textarea id="create-notes" rows="4" class="mt-1 w-full rounded-md border-gray-300"></textarea></div>
-            <div>
-                <label class="block text-sm font-medium">Tags (comma-separated)</label>
-                <input type="text" id="create-tags" class="mt-1 w-full rounded-md border-gray-300">
-                 <div id="create-tags-container" class="mt-2 flex flex-wrap gap-2"></div>
+            <div class="p-4 bg-black/20 rounded-lg border border-[var(--glass-border)]">
+                 <h4 class="text-md font-semibold text-white mb-3">Notes & Tags</h4>
+                 <div><label class="block text-sm font-medium text-gray-300">Notes (Markdown supported)</label><textarea id="create-notes" rows="4" class="mt-1 w-full rounded-md bg-transparent border-[var(--glass-border)] text-white placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea></div>
+                 <div class="mt-4">
+                    <label class="block text-sm font-medium text-gray-300">Tags (comma-separated)</label>
+                    <input type="text" id="create-tags" class="mt-1 w-full rounded-md bg-transparent border-[var(--glass-border)] text-white placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    <div id="create-tags-container" class="mt-2 flex flex-wrap gap-2"></div>
+                </div>
             </div>
-            <div>
-                <label class="block text-sm font-medium">References</label>
+            <div class="p-4 bg-black/20 rounded-lg border border-[var(--glass-border)]">
+                <h4 class="text-md font-semibold text-white mb-3">References</h4>
                 <div id="references-container" class="space-y-2 mt-1"></div>
-                <button type="button" id="add-reference-btn" class="mt-2 text-sm text-indigo-600 hover:text-indigo-800">+ Add URL</button>
+                <button type="button" id="add-reference-btn" class="mt-2 text-sm text-indigo-400 hover:text-indigo-300">+ Add URL</button>
             </div>
         `;
         
@@ -206,28 +201,24 @@
         const newField = document.createElement('div');
         newField.className = 'flex items-center gap-2 reference-field-group';
         newField.innerHTML = `
-            <input type="text" placeholder="URL" value="${escapeHTML(url)}" class="flex-1 w-full text-sm rounded-md border-gray-300 reference-url">
-            <input type="text" placeholder="Optional Name" value="${escapeHTML(name)}" class="flex-1 w-full text-sm rounded-md border-gray-300 reference-name">
-            <button type="button" class="p-1 text-red-500 hover:text-red-700 remove-reference-btn">&times;</button>
+            <input type="text" placeholder="URL" value="${escapeHTML(url)}" class="flex-1 w-full text-sm rounded-md bg-transparent border-[var(--glass-border)] text-white placeholder-gray-400 reference-url">
+            <input type="text" placeholder="Optional Name" value="${escapeHTML(name)}" class="flex-1 w-full text-sm rounded-md bg-transparent border-[var(--glass-border)] text-white placeholder-gray-400 reference-name">
+            <button type="button" class="p-1 text-red-500 hover:text-red-400 remove-reference-btn text-2xl font-bold">&times;</button>
         `;
         container.appendChild(newField);
     }
 
     async function handleConfirmCreateArticle() {
         const selectedContents = Array.from($$('#synthesis-section input[type="checkbox"]:checked')).map(cb => cb.dataset.content);
-
         const references = Array.from($$('.reference-field-group')).map(group => ({
             url: group.querySelector('.reference-url').value,
             name: group.querySelector('.reference-name').value
         })).filter(ref => ref.url.trim() !== '');
 
         const payload = {
-            title: $('#create-title').value,
-            group_id: $('#create-group-id').value,
-            notes: $('#create-notes').value,
-            tags: $('#create-tags').value,
-            texts: selectedContents,
-            references: references
+            title: $('#create-title').value, group_id: $('#create-group-id').value,
+            notes: $('#create-notes').value, tags: $('#create-tags').value,
+            texts: selectedContents, references: references
         };
 
         if (!payload.title || !payload.group_id) {
@@ -240,27 +231,30 @@
         btn.textContent = 'Creating...';
 
         await fetch('/create_article', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
         location.reload();
     }
     
-    // --- Other Functions (Unchanged) ---
+    // --- Other Functions ---
     async function openEditModal(id) {
         const res = await fetch(`/get/article/${id}`);
         const article = await res.json();
+        // MODIFIED: Applied the same "glass plane" styling to the edit modal
         const content = `
-            <input type="hidden" id="edit-id" value="${article.id}">
-            <div><label class="block text-sm font-medium">Title</label><input type="text" id="edit-title" value="${escapeHTML(article.title)}" class="mt-1 w-full rounded-md border-gray-300"></div>
-            <div><label class="block text-sm font-medium">Group</label><select id="edit-group-id" class="mt-1 w-full rounded-md border-gray-300">${buildGroupOptions(article.group_id)}</select></div>
-            <div><label class="block text-sm font-medium">Notes</label><textarea id="edit-notes" rows="4" class="mt-1 w-full rounded-md border-gray-300">${escapeHTML(article.notes)}</textarea></div>
-            <div><label class="block text-sm font-medium">References</label><textarea id="edit-references" rows="2" class="mt-1 w-full rounded-md border-gray-300">${escapeHTML(article.references)}</textarea></div>
-            <div>
-                <label class="block text-sm font-medium">Tags</label>
-                <input type="text" id="edit-tags" value="${escapeHTML(article.tags)}" class="mt-1 w-full rounded-md border-gray-300">
-                <div id="edit-tags-container" class="mt-2 flex flex-wrap gap-2"></div>
+            <div class="p-4 bg-black/20 rounded-lg border border-[var(--glass-border)] space-y-4">
+                 <div><label class="block text-sm font-medium text-gray-300">Title</label><input type="text" id="edit-title" value="${escapeHTML(article.title)}" class="mt-1 w-full rounded-md bg-transparent border-[var(--glass-border)] text-white placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></div>
+                <div><label class="block text-sm font-medium text-gray-300">Group</label><select id="edit-group-id" class="mt-1 w-full rounded-md bg-[#16213e] border-[var(--glass-border)] text-white placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">${buildGroupOptions(article.group_id)}</select></div>
+            </div>
+            <div class="p-4 bg-black/20 rounded-lg border border-[var(--glass-border)] space-y-4">
+                <div><label class="block text-sm font-medium text-gray-300">Notes</label><textarea id="edit-notes" rows="4" class="mt-1 w-full rounded-md bg-transparent border-[var(--glass-border)] text-white placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">${escapeHTML(article.notes)}</textarea></div>
+                <div><label class="block text-sm font-medium text-gray-300">References</label><textarea id="edit-references" rows="2" class="mt-1 w-full rounded-md bg-transparent border-[var(--glass-border)] text-white placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">${escapeHTML(article.references)}</textarea></div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300">Tags</label>
+                    <input type="text" id="edit-tags" value="${escapeHTML(article.tags)}" class="mt-1 w-full rounded-md bg-transparent border-[var(--glass-border)] text-white placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    <div id="edit-tags-container" class="mt-2 flex flex-wrap gap-2"></div>
+                </div>
             </div>
         `;
         $('#edit-modal-content').innerHTML = content;
@@ -288,7 +282,7 @@
         data.roles.forEach(role => {
             content += `
                 <div><label class="flex items-center">
-                        <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 share-role-checkbox" value="${role.id}" ${role.shared ? 'checked' : ''}>
+                        <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 share-role-checkbox" value="${role.id}" ${role.shared ? 'checked' : ''}>
                         <span class="ml-2 text-sm">${role.name}</span>
                 </label></div>`;
         });
