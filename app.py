@@ -131,13 +131,25 @@ def query_gemini(prompt):
 def query_google_search(query_text):
     api_key = config.get('GOOGLE_API_KEY')
     search_id = config.get('SEARCH_ENGINE_ID')
-    if not api_key or not search_id: return [{"title": "Error", "snippet": "Google Search not configured."}]
+    if not api_key or not search_id: return [] # Return empty list on config error
     try:
         from googleapiclient.discovery import build
         service = build("customsearch", "v1", developerKey=api_key)
         res = service.cse().list(q=query_text, cx=search_id, num=5).execute()
-        return [{"title": i.get('title'), "link": i.get('link'), "snippet": i.get('snippet')} for i in res.get('items', [])]
-    except Exception as e: return [{"title": "Error", "snippet": f"API Error: {e}"}]
+        # Format the results to match the template's expectations
+        return [
+            {
+                "title": i.get('title'), 
+                "url": i.get('link'), 
+                "snippet": i.get('snippet'),
+                "source": i.get('displayLink'),
+                "date": i.get('pagemap', {}).get('metatags', [{}])[0].get('article:published_time')
+            } 
+            for i in res.get('items', [])
+        ]
+    except Exception as e: 
+        print(f"Google Search API Error: {e}")
+        return []
 
 def query_chatgpt(prompt):
     api_key = config.get('OPENAI_API_KEY')
@@ -445,18 +457,24 @@ def edit_article(article_id):
     db.session.commit()
     return jsonify({"success": True, "message": "Article updated."})
 
+# --- UPDATED: /ask route ---
 @app.route('/ask', methods=['POST'])
 @login_required
 def ask():
     question = request.get_json().get('question')
-    if not question: return jsonify({"error": "No question"}), 400
+    if not question: 
+        return jsonify({"error": "No question"}), 400
     
-    return jsonify({
+    # Gather all results from the different sources
+    results = {
         "local_kb": query_local_kb(question),
-        "gemini": query_gemini(question), 
-        "google": query_google_search(question),
-        "chatgpt": query_chatgpt(question)
-    })
+        "gemini": query_gemini(question),
+        "google_search": query_google_search(question),
+        "openai": query_chatgpt(question)
+    }
+    
+    # Instead of returning JSON, render the HTML template with the results
+    return render_template('_search_results.html', results=results)
 
 @app.route('/synthesize', methods=['POST'])
 @login_required
