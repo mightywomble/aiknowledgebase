@@ -98,6 +98,31 @@ class Article(db.Model):
     roles = db.relationship('Role', secondary=article_roles, backref=db.backref('articles', lazy='dynamic'))
     author = db.relationship('User', backref='articles')
 
+# --- DATABASE INITIALIZATION (for WSGI) ---
+
+def init_db():
+    with app.app_context():
+        db.create_all()
+        # Seed roles and default admin user if missing
+        if not Role.query.filter_by(name='Admin').first():
+            db.session.add(Role(name='Admin', is_admin=True, can_add_kb=True, can_edit_kb=True, can_delete_kb=True))
+        if not Role.query.filter_by(name='User').first():
+            db.session.add(Role(name='User', can_add_kb=True, can_edit_kb=True))
+        if not User.query.filter_by(username='admin').first():
+            hashed_password = generate_password_hash('admin', method='pbkdf2:sha256')
+            admin_user = User(username='admin', password_hash=hashed_password, name='Admin')
+            admin_role = Role.query.filter_by(name='Admin').first()
+            user_role = Role.query.filter_by(name='User').first()
+            if admin_role:
+                admin_user.roles.append(admin_role)
+            if user_role:
+                admin_user.roles.append(user_role)
+            db.session.add(admin_user)
+        db.session.commit()
+
+# Ensure DB exists when the module is imported (e.g., under waitress / gunicorn)
+init_db()
+
 # --- LOGIN & SESSION MANAGEMENT ---
 
 @login_manager.user_loader
