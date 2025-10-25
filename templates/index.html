@@ -44,29 +44,21 @@
                 <form id="filter-form" method="GET" action="{{ url_for('index') }}" class="filter-form">
                     <input type="text" name="search" placeholder="Search articles..." value="{{ search_term or '' }}" class="search-filter">
                     <div class="filter-grid">
-                        <select id="group-filter" name="group" onchange="this.form.submit()" class="filter-select">
+                        <select name="group" onchange="this.form.submit()" class="filter-select">
                             <option value="">All Groups</option>
+                            {% set shown = [] %}
+                            {% for group in all_groups if group.parent_id is none %}
+                            <option value="{{ group.id }}" {% if filter_group_id == group.id %}selected{% endif %}>{{ group.name }}</option>
+                            {% set shown = shown + [group.id] %}
+                            {% for subgroup in all_groups if subgroup.parent_id == group.id %}
+                            <option value="{{ subgroup.id }}" {% if filter_group_id == subgroup.id %}selected{% endif %}>&nbsp;&nbsp;&nbsp;&nbsp;{{ subgroup.name }}</option>
+                            {% set shown = shown + [subgroup.id] %}
+                            {% for subsubgroup in all_groups if subsubgroup.parent_id == subgroup.id %}
+                            <option value="{{ subsubgroup.id }}" {% if filter_group_id == subsubgroup.id %}selected{% endif %}>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ subsubgroup.name }}</option>
+                            {% endfor %}
+                            {% endfor %}
+                            {% endfor %}
                         </select>
-                        <script>
-                            const groupFilter = document.getElementById('group-filter');
-                            const allGroups = {{ groups_for_js|tojson|safe }};
-                            const topLevel = allGroups.filter(g => g.parent_id === null);
-                            function renderGroupOptions(groups, depth = 0) {
-                                for (const group of groups) {
-                                    const prefix = '&nbsp;&nbsp;'.repeat(depth);
-                                    const option = document.createElement('option');
-                                    option.value = group.id;
-                                    option.innerHTML = prefix + group.name;
-                                    {% if filter_group_id %}
-                                    if (group.id === {{ filter_group_id }}) option.selected = true;
-                                    {% endif %}
-                                    groupFilter.appendChild(option);
-                                    const children = allGroups.filter(g => g.parent_id === group.id);
-                                    if (children.length > 0) renderGroupOptions(children, depth + 1);
-                                }
-                            }
-                            renderGroupOptions(topLevel);
-                        </script>
                         <select name="tag" onchange="this.form.submit()" class="filter-select">
                             <option value="">All Tags</option>
                             {% for tag in all_tags %}
