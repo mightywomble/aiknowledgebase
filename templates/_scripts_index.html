@@ -117,6 +117,7 @@
     async function handleArticleClick(id) {
         const response = await fetch(`/get/article/${id}`);
         const article = await response.json();
+        article.is_private = article.is_private || false; // Ensure is_private exists
         $('#modal-title').textContent = article.title;
 
         let contentHtml = `<div class="space-y-4">`; // Main container for all sections
@@ -205,6 +206,10 @@
                     <div><label class="block text-sm font-medium text-gray-300">Title</label><input type="text" id="create-title" class="mt-1 w-full rounded-md bg-transparent border-[var(--glass-border)] text-white placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></div>
                     <div><label class="block text-sm font-medium text-gray-300">Group</label><select id="create-group-id" class="mt-1 w-full rounded-md bg-[#16213e] border-[var(--glass-border)] text-white placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">${buildGroupOptions()}</select></div>
                 </div>
+                <div class="mt-4 flex items-center">
+                    <input type="checkbox" id="create-is-private" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                    <label for="create-is-private" class="ml-2 block text-sm text-gray-300">Make this article private (only you can see it)</label>
+                </div>
             </div>
             <div class="p-4 bg-black/20 rounded-lg border border-[var(--glass-border)]">
                  <h4 class="text-md font-semibold text-white mb-3">Notes & Tags</h4>
@@ -261,7 +266,8 @@
         const payload = {
             title: $('#create-title').value, group_id: $('#create-group-id').value,
             notes: $('#create-notes').value, tags: $('#create-tags').value,
-            texts: selectedContents, references: references
+            texts: selectedContents, references: references,
+            is_private: $('#create-is-private').checked
         };
 
         if (!payload.title || !payload.group_id) {
@@ -297,6 +303,10 @@
                     <input type="text" id="edit-tags" value="${escapeHTML(article.tags)}" class="mt-1 w-full rounded-md bg-transparent border-[var(--glass-border)] text-white placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                     <div id="edit-tags-container" class="mt-2 flex flex-wrap gap-2"></div>
                 </div>
+                <div class="flex items-center">
+                    <input type="checkbox" id="edit-is-private" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" ${article.is_private ? 'checked' : ''}>
+                    <label for="edit-is-private" class="ml-2 block text-sm text-gray-300">Make this article private (only you can see it)</label>
+                </div>
             </div>
         `;
         $('#edit-modal-content').innerHTML = content;
@@ -309,7 +319,8 @@
         const id = $('#edit-id').value;
         const payload = {
             title: $('#edit-title').value, group_id: $('#edit-group-id').value,
-            notes: $('#edit-notes').value, references: $('#edit-references').value, tags: $('#edit-tags').value
+            notes: $('#edit-notes').value, references: $('#edit-references').value, tags: $('#edit-tags').value,
+            is_private: $('#edit-is-private').checked
         };
         await fetch(`/edit/article/${id}`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)

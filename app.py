@@ -94,6 +94,7 @@ class Article(db.Model):
     tags = db.Column(db.String(255), nullable=True)
     group_id = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    is_private = db.Column(db.Boolean, default=False, nullable=False)
     is_shared = db.Column(db.Boolean, default=False, nullable=False)
     roles = db.relationship('Role', secondary=article_roles, backref=db.backref('articles', lazy='dynamic'))
     author = db.relationship('User', backref='articles')
@@ -269,16 +270,22 @@ def index():
     
     query = Article.query.join(Group).outerjoin(article_roles, Article.id == article_roles.c.article_id)
     
+    # Articles visible if:
+    # 1. User is the author, OR
+    # 2. Article is not private AND (no role restrictions OR user has one of the restricted roles)
     visibility_filter = or_(
         Article.user_id == current_user.id,
-        article_roles.c.role_id.in_(user_role_ids)
+        or_(
+            Article.is_private == False,
+            article_roles.c.role_id.in_(user_role_ids)
+        )
     )
     query = query.filter(visibility_filter)
     
     if filter_visibility == 'local':
-        query = query.filter(Article.user_id == current_user.id, Article.is_shared == False)
+        query = query.filter(Article.user_id == current_user.id)
     elif filter_visibility == 'shared':
-        query = query.filter(Article.is_shared == True)
+        query = query.filter(Article.is_private == False)
 
     if search_term:
         query = query.filter(or_(Article.title.ilike(f"%{search_term}%"), Article.tags.ilike(f"%{search_term}%")))
@@ -476,7 +483,7 @@ def get_article(article_id):
     return jsonify({
         'id': article.id, 'title': article.title, 'content': article.content,
         'notes': article.notes, 'references': article.references, 'tags': article.tags,
-        'group_id': article.group.id
+        'group_id': article.group.id, 'is_private': article.is_private
     })
 
 @app.route('/edit/article/<int:article_id>', methods=['POST'])
@@ -490,6 +497,7 @@ def edit_article(article_id):
     article.notes = data['notes']
     article.references = data['references']
     article.tags = data['tags']
+    article.is_private = data.get('is_private', False)
     db.session.commit()
     return jsonify({"success": True, "message": "Article updated."})
 
@@ -538,6 +546,7 @@ def create_article():
             tags=data.get('tags'), 
             group_id=data['group_id'],
             user_id=current_user.id,
+            is_private=data.get('is_private', False),
             is_shared=False
         )
         db.session.add(new_article)
