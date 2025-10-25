@@ -422,7 +422,7 @@ def save_settings():
 @permission_required('is_admin')
 def save_schedule():
     global config
-    enabled = request.form.get('backup_enabled') == 'on'
+    enabled = request.form.get('backup_enabled')
     cron = request.form.get('backup_cron', '0 2 * * *')
     
     # Remove existing job
@@ -432,18 +432,18 @@ def save_schedule():
     # Add new job if enabled
     if enabled:
         try:
-            scheduler.add_job(perform_scheduled_backup, 'cron', id='github_backup_job', args=[], 
-                            hour=int(cron.split()[1]), minute=int(cron.split()[0]))
+            scheduler.add_job(perform_scheduled_backup, 'cron', id='github_backup_job', args=[], cron_string=cron)
+            config['BACKUP_CRON'] = cron
+            save_config(config)
             flash('Backup schedule enabled!', 'success')
         except Exception as e:
             flash(f'Error scheduling backup: {e}', 'danger')
             return redirect(request.referrer or url_for('settings_page', page='schedule'))
     else:
+        config['BACKUP_CRON'] = cron
+        save_config(config)
         flash('Backup schedule disabled.', 'success')
     
-    # Save cron to config
-    config['BACKUP_CRON'] = cron
-    save_config(config)
     return redirect(request.referrer or url_for('settings_page', page='schedule'))
 
 @app.route('/user_management')
