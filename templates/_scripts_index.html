@@ -34,6 +34,14 @@
     
     // --- Delegated Event Listeners on Body ---
     document.body.addEventListener('click', function(e) {
+        if (e.target.id === 'edit-article-from-modal' || e.target.closest('#edit-article-from-modal')) {
+            e.preventDefault();
+            closeModal('article-modal');
+            if (window.currentArticleId) {
+                openEditModal(window.currentArticleId);
+            }
+        }
+        
         if (e.target.id === 'share-article-btn' || e.target.closest('#share-article-btn')) {
             const articleId = $('#modal-title').textContent;
             const article = document.querySelector('[data-article-id]');
@@ -492,10 +500,32 @@
     }
     function renderMarkdown(text) {
         if (window.marked) {
-            const html = marked.parse(text || '', { breaks: true }); // Enable line breaks
+            const html = marked.parse(text || '', { breaks: true });
             const container = document.createElement('div');
             container.innerHTML = html;
-            container.querySelectorAll('pre code').forEach((block) => { hljs.highlightElement(block); });
+            // Style headings
+            container.querySelectorAll('h1').forEach(h => h.className = 'text-2xl font-bold text-white mt-6 mb-3');
+            container.querySelectorAll('h2').forEach(h => h.className = 'text-xl font-bold text-white mt-5 mb-2');
+            container.querySelectorAll('h3').forEach(h => h.className = 'text-lg font-semibold text-white mt-4 mb-2');
+            // Style paragraphs
+            container.querySelectorAll('p').forEach(p => p.className = 'text-gray-200 mb-3 leading-relaxed');
+            // Style lists
+            container.querySelectorAll('ul, ol').forEach(l => l.className = 'ml-4 mb-3 space-y-1');
+            container.querySelectorAll('li').forEach(li => li.className = 'text-gray-200 list-item');
+            // Style code blocks
+            container.querySelectorAll('pre').forEach(pre => pre.className = 'bg-black/40 rounded-lg p-4 overflow-x-auto my-3 border border-[var(--glass-border)]');
+            container.querySelectorAll('code').forEach(code => {
+                if (!code.parentElement.tagName === 'PRE') code.className = 'bg-black/30 px-2 py-1 rounded text-yellow-400';
+                if (code.parentElement.tagName === 'PRE') hljs.highlightElement(code);
+            });
+            // Style blockquotes
+            container.querySelectorAll('blockquote').forEach(bq => bq.className = 'border-l-4 border-indigo-500 pl-4 py-2 my-3 italic text-gray-300');
+            // Style links
+            container.querySelectorAll('a').forEach(a => a.className = 'text-indigo-400 hover:text-indigo-300 underline');
+            // Style tables
+            container.querySelectorAll('table').forEach(t => t.className = 'w-full border-collapse my-3 text-gray-200');
+            container.querySelectorAll('th').forEach(th => th.className = 'border border-gray-600 bg-black/30 px-3 py-2 text-left');
+            container.querySelectorAll('td').forEach(td => td.className = 'border border-gray-600 px-3 py-2');
             return container.innerHTML;
         }
         return escapeHTML(text || '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');

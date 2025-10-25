@@ -9,7 +9,10 @@
         <div class="p-4 border-b border-[var(--glass-border)] flex justify-between items-center">
             <h2 id="modal-title" class="text-2xl font-bold text-white"></h2>
             <div class="flex items-center gap-2">
-                <button id="share-article-btn" class="p-2 text-gray-400 hover:text-white rounded-full hover:bg-white/10" title="Share or Copy">
+                <button id="edit-article-from-modal" class="p-2 text-gray-400 hover:text-white rounded-full hover:bg-white/10" title="Edit Article">
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5L21 12" /></svg>
+                </button>
+                <button id="share-article-btn" class="p-2 text-gray-400 hover:text-white rounded-full hover:bg-white/10" title="Share">
                     <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 100 4.186m0-4.186a2.25 2.25 0 110 4.186m2.25-4.186a2.25 2.25 0 000-4.186m0 4.186c.331 0 .653.064.95.182m0-4.364a2.25 2.25 0 010 4.186m-9.5 0a2.25 2.25 0 000 4.186m0-4.186a2.25 2.25 0 010-4.186" /></svg>
                 </button>
                 <button onclick="closeModal('article-modal')" class="p-2 text-gray-400 hover:text-white rounded-full hover:bg-white/10" title="Close">
@@ -17,7 +20,7 @@
                 </button>
             </div>
         </div>
-        <div id="modal-content" class="p-6 overflow-y-auto prose-styles"></div>
+        <div id="modal-content" class="p-6 overflow-y-auto" style="font-size: 15px; line-height: 1.8;"></div>
         <div class="p-4 bg-black/20 border-t border-[var(--glass-border)] text-right rounded-b-xl">
              <button onclick="closeModal('article-modal')" class="rounded-md bg-white/10 px-3 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-inset ring-white/20 hover:bg-white/20">Close</button>
         </div>
