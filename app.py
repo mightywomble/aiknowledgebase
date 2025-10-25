@@ -717,15 +717,9 @@ def get_sharing_details(article_id):
     if not (current_user.id == article.user_id or current_user.has_permission('is_admin')):
         return jsonify({"error": "Permission denied"}), 403
     
-    all_roles = Role.query.all()
-    shared_with_ids = [role.id for role in article.roles]
-    
-    roles_data = [{"id": role.id, "name": role.name, "shared": role.id in shared_with_ids} for role in all_roles]
-    
     return jsonify({
         "article_id": article.id,
-        "is_shared": article.is_shared,
-        "roles": roles_data
+        "is_private": article.is_private
     })
 
 @app.route('/article/share', methods=['POST'])
@@ -733,15 +727,13 @@ def get_sharing_details(article_id):
 def share_article():
     data = request.get_json()
     article_id = data.get('article_id')
-    role_ids = data.get('role_ids', [])
+    is_private = data.get('is_private', False)
     
     article = Article.query.get_or_404(article_id)
     if not (current_user.id == article.user_id or current_user.has_permission('is_admin')):
         return jsonify({"error": "Permission denied"}), 403
 
-    article.roles = Role.query.filter(Role.id.in_(role_ids)).all()
-    article.is_shared = len(article.roles) > 0
-    
+    article.is_private = is_private
     db.session.commit()
     return jsonify({"success": True})
 
