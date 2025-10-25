@@ -37,6 +37,11 @@
             }
         }
         
+        if (e.target.id === 'manual-article-btn' || e.target.closest('#manual-article-btn')) {
+            e.preventDefault();
+            openManualArticleModal();
+        }
+        
         if (e.target.closest('#start-synthesis-btn')) {
             e.preventDefault();
             openCreateArticleModal();
@@ -529,5 +534,64 @@
             collapsedGroups = collapsedGroups.filter(name => name !== groupName);
         }
         localStorage.setItem('collapsedGroups', JSON.stringify(collapsedGroups));
+    }
+
+    // --- Manual Article Creation ---
+    function openManualArticleModal() {
+        $('#manual-title').value = '';
+        $('#manual-content').value = '';
+        $('#manual-notes').value = '';
+        $('#manual-references').value = '';
+        $('#manual-tags').value = '';
+        $('#manual-is-private').checked = false;
+        $('#manual-group-id').innerHTML = buildGroupOptions();
+        renderTagButtons('manual-tags-container', 'manual-tags');
+        $('#confirm-manual-article-btn').onclick = handleConfirmManualArticle;
+        openModal('manual-article-modal');
+    }
+
+    async function handleConfirmManualArticle() {
+        const title = $('#manual-title').value.trim();
+        const content = $('#manual-content').value.trim();
+        const groupId = $('#manual-group-id').value;
+        const notes = $('#manual-notes').value.trim();
+        const references = $('#manual-references').value.trim();
+        const tags = $('#manual-tags').value.trim();
+        const isPrivate = $('#manual-is-private').checked;
+
+        if (!title || !content || !groupId) {
+            alert('Title, content, and group are required.');
+            return;
+        }
+
+        const payload = {
+            title: title,
+            group_id: groupId,
+            texts: [content],
+            notes: notes,
+            references: references,
+            tags: tags,
+            is_private: isPrivate
+        };
+
+        const btn = $('#confirm-manual-article-btn');
+        btn.disabled = true;
+        btn.textContent = 'Creating...';
+
+        const response = await fetch('/create_article', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            alert('Article created successfully!');
+            location.reload();
+        } else {
+            alert('Error: ' + (result.error || 'Failed to create article'));
+            btn.disabled = false;
+            btn.textContent = 'Create Article';
+        }
     }
 </script>

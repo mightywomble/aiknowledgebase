@@ -607,6 +607,26 @@ def bulk_action():
 def backup_restore_page():
     return render_template('backup_restore.html')
 
+@app.route('/backup/api-keys')
+@login_required
+@permission_required('is_admin')
+def backup_api_keys():
+    api_keys_data = {
+        'GEMINI_API_KEY': config.get('GEMINI_API_KEY', ''),
+        'GEMINI_MODEL': config.get('GEMINI_MODEL', 'gemini-2.5-pro'),
+        'GOOGLE_API_KEY': config.get('GOOGLE_API_KEY', ''),
+        'SEARCH_ENGINE_ID': config.get('SEARCH_ENGINE_ID', ''),
+        'OPENAI_API_KEY': config.get('OPENAI_API_KEY', ''),
+        'GITHUB_CLIENT_ID': config.get('GITHUB_CLIENT_ID', ''),
+        'GITHUB_CLIENT_SECRET': config.get('GITHUB_CLIENT_SECRET', ''),
+        'GITHUB_BACKUP_REPO': config.get('GITHUB_BACKUP_REPO', ''),
+        'GITHUB_TOKEN': config.get('GITHUB_TOKEN', ''),
+    }
+    memory_file = io.BytesIO()
+    memory_file.write(json.dumps(api_keys_data, indent=4).encode('utf-8'))
+    memory_file.seek(0)
+    return send_file(memory_file, download_name='api_keys_backup.json', as_attachment=True)
+
 @app.route('/backup/file')
 @login_required
 @permission_required('is_admin')
@@ -639,9 +659,21 @@ def backup_to_github():
                       'references': a.references, 'tags': a.tags, 'group_id': a.group_id} for a in articles]
     groups = Group.query.all()
     groups_data = [{'id': g.id, 'name': g.name, 'color': g.color, 'parent_id': g.parent_id} for g in groups]
+    api_keys_data = {
+        'GEMINI_API_KEY': config.get('GEMINI_API_KEY', ''),
+        'GEMINI_MODEL': config.get('GEMINI_MODEL', 'gemini-2.5-pro'),
+        'GOOGLE_API_KEY': config.get('GOOGLE_API_KEY', ''),
+        'SEARCH_ENGINE_ID': config.get('SEARCH_ENGINE_ID', ''),
+        'OPENAI_API_KEY': config.get('OPENAI_API_KEY', ''),
+        'GITHUB_CLIENT_ID': config.get('GITHUB_CLIENT_ID', ''),
+        'GITHUB_CLIENT_SECRET': config.get('GITHUB_CLIENT_SECRET', ''),
+        'GITHUB_BACKUP_REPO': config.get('GITHUB_BACKUP_REPO', ''),
+        'GITHUB_TOKEN': config.get('GITHUB_TOKEN', ''),
+    }
     files = {
         "articles.json": json.dumps(articles_data, indent=4),
-        "groups.json": json.dumps(groups_data, indent=4)
+        "groups.json": json.dumps(groups_data, indent=4),
+        "api_keys_backup.json": json.dumps(api_keys_data, indent=4)
     }
     for filename, content in files.items():
         url = f"https://api.github.com/repos/{repo_name}/contents/{filename}"
@@ -673,6 +705,54 @@ def restore_from_upload():
         return jsonify(backup_data)
     except Exception as e:
         return jsonify({"error": f"Invalid backup file: {e}"}), 400
+
+@app.route('/restore/api-keys/file', methods=['POST'])
+@login_required
+@permission_required('is_admin')
+def restore_api_keys_from_file():
+    global config
+    if 'api_keys_file' not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+    file = request.files['api_keys_file']
+    if file.filename == '':
+        return jsonify({"error": "No file selected"}), 400
+    try:
+        api_keys_data = json.loads(file.read().decode('utf-8'))
+        # Update config with new API keys
+        for key in ['GEMINI_API_KEY', 'GEMINI_MODEL', 'GOOGLE_API_KEY', 'SEARCH_ENGINE_ID', 'OPENAI_API_KEY', 'GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET', 'GITHUB_BACKUP_REPO', 'GITHUB_TOKEN']:
+            if key in api_keys_data:
+                config[key] = api_keys_data[key]
+        save_config(config)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": f"Invalid API keys file: {e}"}), 400
+
+@app.route('/restore/api-keys/github', methods=['POST'])
+@login_required
+@permission_required('is_admin')
+def restore_api_keys_from_github():
+    global config
+    repo_name = config.get('GITHUB_BACKUP_REPO')
+    token = config.get('GITHUB_TOKEN')
+    if not all([repo_name, token]):
+        return jsonify({"success": False, "error": "GitHub repo or token not configured."})
+    try:
+        headers = {"Authorization": f"token {token}"}
+        url = f"https://api.github.com/repos/{repo_name}/contents/api_keys_backup.json"
+        get_res = requests.get(url, headers=headers)
+        if get_res.status_code != 200:
+            return jsonify({"success": False, "error": "API keys file not found on GitHub"})
+        file_content = get_res.json()
+        import base64
+        api_keys_data = json.loads(base64.b64decode(file_content['content']).decode('utf-8'))
+        # Update config with fetched API keys
+        for key in ['GEMINI_API_KEY', 'GEMINI_MODEL', 'GOOGLE_API_KEY', 'SEARCH_ENGINE_ID', 'OPENAI_API_KEY', 'GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET', 'GITHUB_BACKUP_REPO', 'GITHUB_TOKEN']:
+            if key in api_keys_data:
+                config[key] = api_keys_data[key]
+        save_config(config)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": f"Failed to restore from GitHub: {e}"})
 
 @app.route('/restore/execute', methods=['POST'])
 @login_required

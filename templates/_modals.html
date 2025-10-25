@@ -69,6 +69,48 @@
     </div>
 </div>
 
+<!-- Manual Article Creation Modal -->
+<div id="manual-article-modal" class="fixed inset-0 flex items-center justify-center p-4 hidden z-[1001] modal-enter">
+    <div class="bg-[#16213e] border border-[var(--glass-border)] rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col text-gray-200">
+        <h3 class="p-6 border-b border-[var(--glass-border)] text-xl font-medium text-white">Create Manual KB Article</h3>
+        <div class="p-6 space-y-4 overflow-y-auto">
+            <div>
+                <label class="block text-sm font-medium text-gray-300">Title</label>
+                <input type="text" id="manual-title" class="mt-1 w-full rounded-md bg-transparent border-[var(--glass-border)] text-white placeholder-gray-400 shadow-sm" placeholder="Article title">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-300">Group</label>
+                <select id="manual-group-id" class="mt-1 w-full rounded-md bg-[#16213e] border-[var(--glass-border)] text-white shadow-sm"></select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-300">Content (Markdown supported)</label>
+                <textarea id="manual-content" rows="6" class="mt-1 w-full rounded-md bg-transparent border-[var(--glass-border)] text-white placeholder-gray-400 shadow-sm" placeholder="Article content"></textarea>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-300">Notes</label>
+                <textarea id="manual-notes" rows="3" class="mt-1 w-full rounded-md bg-transparent border-[var(--glass-border)] text-white placeholder-gray-400 shadow-sm" placeholder="Notes (optional)"></textarea>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-300">References</label>
+                <textarea id="manual-references" rows="2" class="mt-1 w-full rounded-md bg-transparent border-[var(--glass-border)] text-white placeholder-gray-400 shadow-sm" placeholder="References (optional)"></textarea>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-300">Tags (comma-separated)</label>
+                <input type="text" id="manual-tags" class="mt-1 w-full rounded-md bg-transparent border-[var(--glass-border)] text-white placeholder-gray-400 shadow-sm" placeholder="tag1, tag2, tag3">
+                <div id="manual-tags-container" class="mt-2 flex flex-wrap gap-2"></div>
+            </div>
+            <div class="flex items-center">
+                <input type="checkbox" id="manual-is-private" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                <label for="manual-is-private" class="ml-2 block text-sm text-gray-300">Make this article private (only you can see it)</label>
+            </div>
+        </div>
+        <div class="bg-black/20 px-6 py-4 flex justify-end space-x-3 rounded-b-xl border-t border-[var(--glass-border)]">
+            <button onclick="closeModal('manual-article-modal')" class="rounded-md bg-white/10 px-3 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-inset ring-white/20 hover:bg-white/20">Cancel</button>
+            <button id="confirm-manual-article-btn" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">Create Article</button>
+        </div>
+    </div>
+</div>
+
 <!-- Bulk Update Modal -->
 <!-- MODIFIED: Using Tailwind classes for positioning and styling -->
 <div id="bulk-update-modal" class="fixed inset-0 flex items-center justify-center p-4 hidden z-[1001] modal-enter">

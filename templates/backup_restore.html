@@ -17,6 +17,11 @@
                 <a href="{{ url_for('backup_to_file') }}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">Download Backup</a>
             </div>
             <div class="border-t border-[var(--glass-border)] pt-4">
+                <h3 class="font-medium text-gray-200">Backup API Keys to File</h3>
+                <p class="text-sm text-gray-400 mb-2">Download a file containing all configured API keys (Gemini, OpenAI, Google, GitHub).</p>
+                <a href="{{ url_for('backup_api_keys') }}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-800 hover:bg-gray-900">Download API Keys</a>
+            </div>
+            <div class="border-t border-[var(--glass-border)] pt-4">
                 <h3 class="font-medium text-gray-200">Backup to GitHub</h3>
                 <p class="text-sm text-gray-400 mb-2">Push articles and groups to the 'dev' branch of your configured GitHub repository.</p>
                 <button id="github-backup-btn" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-800 hover:bg-gray-900">Backup to GitHub</button>
@@ -27,8 +32,26 @@
     <!-- Restore Section -->
     <div class="p-6 bg-black/20 rounded-lg border border-[var(--glass-border)]">
         <h2 class="text-xl font-semibold text-white mb-4">Restore from Backup</h2>
-        <p class="text-sm text-gray-400 mb-4">Upload a backup file to restore articles and groups. This will overwrite existing data with the same ID.</p>
-        <input type="file" id="restore-file-input" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-500/10 file:text-indigo-300 hover:file:bg-indigo-500/20"/>
+        
+        <div class="space-y-4">
+            <div>
+                <h3 class="font-medium text-gray-200 mb-2">Restore from File</h3>
+                <p class="text-sm text-gray-400 mb-2">Upload a backup file to restore articles and groups. This will overwrite existing data with the same ID.</p>
+                <input type="file" id="restore-file-input" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-500/10 file:text-indigo-300 hover:file:bg-indigo-500/20"/>
+            </div>
+            
+            <div class="border-t border-[var(--glass-border)] pt-4">
+                <h3 class="font-medium text-gray-200 mb-2">Restore API Keys from GitHub</h3>
+                <p class="text-sm text-gray-400 mb-2">Fetch API keys backup from your GitHub repository's 'dev' branch.</p>
+                <button id="github-restore-btn" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-800 hover:bg-gray-900">Restore from GitHub</button>
+            </div>
+            
+            <div class="border-t border-[var(--glass-border)] pt-4">
+                <h3 class="font-medium text-gray-200 mb-2">Restore API Keys from File</h3>
+                <p class="text-sm text-gray-400 mb-2">Upload an API keys file to restore your saved API credentials.</p>
+                <input type="file" id="restore-api-keys-input" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-500/10 file:text-indigo-300 hover:file:bg-indigo-500/20"/>
+            </div>
+        </div>
     
         <div id="restore-preview" class="hidden mt-6">
             <h3 class="font-medium text-white mb-2">Items to Restore:</h3>
@@ -187,6 +210,43 @@
         }
         btn.textContent = 'Confirm Restore';
         btn.disabled = false;
+    });
+
+    document.getElementById('github-restore-btn').addEventListener('click', async () => {
+        const btn = document.getElementById('github-restore-btn');
+        btn.textContent = 'Restoring...';
+        btn.disabled = true;
+        const response = await fetch('/restore/api-keys/github', { method: 'POST' });
+        const result = await response.json();
+        if (result.success) {
+            alert('API keys restored from GitHub! Settings reloaded.');
+            location.reload();
+        } else {
+            alert('Error: ' + (result.error || 'Failed to restore from GitHub'));
+        }
+        btn.textContent = 'Restore from GitHub';
+        btn.disabled = false;
+    });
+
+    document.getElementById('restore-api-keys-input').addEventListener('change', async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('api_keys_file', file);
+
+        const response = await fetch('/restore/api-keys/file', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            alert('API keys restored successfully! Settings reloaded.');
+            location.reload();
+        } else {
+            alert('Error: ' + (result.error || 'Failed to restore API keys'));
+        }
     });
 </script>
 {% endblock %}
