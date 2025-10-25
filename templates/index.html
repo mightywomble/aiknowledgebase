@@ -188,15 +188,15 @@
             </div>
             
             <div class="search-bottom">
-                <form id="ask-form" class="ask-form">
+                <form id="ask-form" class="ask-form" style="display: flex; gap: 8px; align-items: center;">
                     {% if current_user.has_permission('can_add_kb') %}
-                    <button type="button" id="manual-article-btn" class="search-submit" style="background: transparent; border: none; padding: 0 8px; cursor: pointer;" title="Create Manual Article">
-                        <svg viewBox="0 0 20 20" fill="currentColor" style="width: 20px; height: 20px;">
+                    <button type="button" id="manual-article-btn" style="width: 40px; height: 40px; border-radius: 50%; background: #FBBF24; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: white;" title="Create Manual Article">
+                        <svg viewBox="0 0 20 20" fill="currentColor" style="width: 24px; height: 24px;">
                             <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
                         </svg>
                     </button>
                     {% endif %}
-                    <div class="search-wrapper">
+                    <div class="search-wrapper" style="flex: 1;">
                         <input type="text" id="question-input" class="question-input" placeholder="Ask a question to get started...">
                         <button type="submit" class="search-submit">
                             <svg viewBox="0 0 20 20" fill="currentColor">
