@@ -325,9 +325,22 @@ def github_callback():
 @app.route('/')
 @login_required
 def index():
-    # Reload config to get latest backup time
+    # Reload config to get latest backup time and interval
     current_config = load_config()
     last_backup_time = current_config.get('LAST_BACKUP_TIME')
+    backup_interval = current_config.get('BACKUP_INTERVAL', 30)
+    backup_enabled = current_config.get('BACKUP_ENABLED', True)
+    
+    # Calculate next backup time
+    next_backup_time = None
+    if backup_enabled and last_backup_time:
+        import datetime
+        try:
+            last_time = datetime.datetime.fromisoformat(last_backup_time)
+            next_time = last_time + datetime.timedelta(minutes=backup_interval)
+            next_backup_time = next_time.isoformat()
+        except:
+            pass
     
     search_term = request.args.get('search', '')
     sort_by = request.args.get('sort', 'group')
@@ -378,7 +391,7 @@ def index():
 
     return render_template('index.html', articles=articles, all_tags=all_tags, all_groups=all_groups, groups_for_js=groups_for_js, 
                              search_term=search_term, sort_by=sort_by, filter_group_id=filter_group_id, filter_tag=filter_tag, filter_visibility=filter_visibility,
-                             last_backup_time=last_backup_time)
+                             last_backup_time=last_backup_time, next_backup_time=next_backup_time, backup_enabled=backup_enabled)
 
 # --- MODULAR SETTINGS ROUTES ---
 
@@ -757,6 +770,30 @@ def backup_to_file():
         zf.writestr('config.json', json.dumps(config, indent=4))
     memory_file.seek(0)
     return send_file(memory_file, download_name='kb_backup.zip', as_attachment=True)
+
+@app.route('/backup/manual', methods=['POST'])
+@login_required
+@permission_required('is_admin')
+def manual_backup():
+    """Trigger an immediate backup and reschedule the job"""
+    global config
+    try:
+        perform_scheduled_backup()
+        
+        # Reload config to get updated backup time
+        config = load_config()
+        
+        # Reschedule the backup job to start counting from now
+        if scheduler.get_job('github_backup_job'):
+            scheduler.remove_job('github_backup_job')
+        
+        if config.get('BACKUP_ENABLED'):
+            interval_minutes = config.get('BACKUP_INTERVAL', 30)
+            scheduler.add_job(perform_scheduled_backup, 'interval', minutes=interval_minutes, id='github_backup_job')
+        
+        return jsonify({"success": True, "message": "Backup completed and schedule reset"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route('/backup/github', methods=['POST'])
 @login_required
