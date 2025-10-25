@@ -6,6 +6,41 @@
 [![Flask](https://img.shields.io/badge/Flask-Latest-green.svg)](https://flask.palletsprojects.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+## 📋 Version History
+
+| Version | Date | Summary |
+|---------|------|----------|
+| **1.2.0** | 2025-10-25 | ✨ Automated backup system with scheduling, manual trigger, and status display |
+| 1.1.0 | TBD | Previous release |
+| 1.0.0 | TBD | Initial release |
+
+### Version 1.2.0 Changes
+- ✅ **Automated Backup Scheduling** - Configure automatic GitHub backups at 30min, 1hr, 1day, or 1week intervals
+- ✅ **Manual Backup Trigger** - Click to backup immediately and reset schedule from current time
+- ✅ **Backup Status Display** - See last backup time and next scheduled backup in top-right corner
+- ✅ **Interval-based Scheduling** - Replaced complex cron expressions with simple dropdown menu
+- ✅ **Schedule Reset Logic** - Manual backups reschedule the next automatic backup correctly
+- ✅ **Improved UI** - Enhanced header with backup status widget and hover effects
+
+## 📑 Table of Contents
+
+- [Features](#-features)
+- [Quick Start](#-quick-start)
+- [API Configuration](#-api-configuration)
+- [Backup & Scheduling](#-backup--scheduling)
+- [Project Structure](#-project-structure)
+- [Technical Architecture](#-technical-architecture)
+- [Features Deep Dive](#-features-deep-dive)
+- [Configuration Options](#-configuration-options)
+- [Security Considerations](#-security-considerations)
+- [Development](#-development)
+- [Troubleshooting](#-troubleshooting)
+- [Roadmap](#-roadmap)
+- [Contributing](#-contributing)
+- [License](#-license)
+- [Acknowledgments](#-acknowledgments)
+- [Support](#-support)
+
 ## 🌟 Features
 
 ### 🎯 **Intelligent Search System**
@@ -136,6 +171,78 @@ The application will be available at: **http://127.0.0.1:5050**
    - Use the "Manage Groups" section to create initial categories
    - Set up nested group structures as needed
 
+## 💾 Backup & Scheduling
+
+### Overview
+Automated backup system ensures your knowledge base is safely backed up to GitHub at regular intervals.
+
+### Setup
+
+1. **Configure GitHub Repository**
+   - Create a private GitHub repository to store backups
+   - Generate a GitHub personal access token with `repo` scope
+   - Use at least `public_repo` scope for public repositories
+
+2. **Enable Scheduled Backups**
+   - Navigate to **Settings** → **Backup Schedule**
+   - Toggle "Enable Scheduled Backups" ON
+   - Select backup frequency from dropdown:
+     - **Every 30 minutes** (default) - Frequent backups for active users
+     - **Every 1 hour** - Balanced approach
+     - **Every 1 day** - Once daily at the configured time
+     - **Every 1 week** - Light backup schedule
+   - Click **Save Schedule**
+
+### Manual Backup
+
+Click the backup status widget in the top-right corner to:
+- Trigger an immediate backup
+- Reset the schedule timer from the current time
+- See the last backup timestamp and next scheduled backup time
+
+**Status Indicators:**
+- ✅ Green checkmark with time = Last backup was successful
+- ⏱️ Clock icon = No backups completed yet
+
+### What Gets Backed Up
+
+```
+Backups include:
+├── articles.json       # All articles with content, tags, and metadata
+├── groups.json         # Group hierarchy and color schemes
+├── api_keys_backup.json # API configuration (stored separately)
+└── Timestamped commits to GitHub with backup details
+```
+
+### Restore from Backup
+
+1. Navigate to **Backup/Restore** page
+2. Choose restore source:
+   - **Upload file**: Restore from local ZIP backup
+   - **GitHub**: Restore latest backup from GitHub repository
+3. Review what will be restored
+4. Click **Restore** to complete
+
+**Note:** Restore operations merge with existing data. Delete articles manually if needed to avoid duplicates.
+
+### Troubleshooting Backups
+
+#### Backup Not Running
+- Verify GitHub credentials in Settings → Backup
+- Check network connectivity
+- Confirm GitHub repository is accessible
+- Review browser console for errors
+
+#### "Repository not found" Error
+- Verify repository name format: `username/repo-name`
+- Ensure personal access token has `repo` scope
+- Check token hasn't expired
+
+#### Backup Schedule Reset
+- Click backup widget to trigger manual backup
+- Schedule automatically resets to count from the backup time
+- Next backup will be: `current_time + selected_interval`
+
 ## 📁 Project Structure
 
 ```
@@ -143,7 +250,8 @@ ai-knowledge-base/
 ├── app.py                    # Main Flask application
 ├── requirements.txt          # Python dependencies
 ├── config.json              # Runtime configuration (auto-generated)
-├── kb.db                    # SQLite database (auto-generated)
+├── instance/                # Instance-specific files (auto-generated)
+│   └── kb.db               # SQLite database (created on first run)
 ├── templates/               # HTML templates
 │   ├── base.html            # Base template
 │   ├── index.html           # Main dashboard
@@ -170,6 +278,36 @@ ai-knowledge-base/
 - **Technology**: SQLite for lightweight, serverless operation
 - **Schema**: Articles, groups, tags, and metadata tables
 - **Features**: ACID compliance, concurrent read access, automatic backup
+
+### Database Configuration
+
+#### **Current Implementation**
+- **Database Type**: SQLite (local file-based)
+- **Location**: `instance/kb.db` (created automatically on first run)
+- **Auto-initialization**: Database schema is created on application startup if it doesn't exist
+- **Best For**: Single-user deployments, development, self-hosted instances
+
+#### **Database Structure**
+The application uses SQLAlchemy ORM with the following main tables:
+- `user` - User accounts and authentication
+- `role` - Role definitions and permissions
+- `article` - Knowledge base articles with metadata
+- `group` - Article organization and categorization
+- `roles_users` - User-role relationship mapping
+- `article_roles` - Article-role permission mapping
+
+#### **Future Database Support**
+- **PostgreSQL Support**: Planned for upcoming releases
+- **Migration Path**: Configuration-based database selection (SQLite → PostgreSQL)
+- **Benefits**: Better concurrency, multi-user support, cloud-ready deployment
+
+#### **Backup Strategy**
+The automated backup system (v1.2.0+) supplements database files by:
+- Exporting article and group data to JSON files
+- Pushing backups to GitHub on a configurable schedule
+- Enabling quick recovery and migration to other systems
+
+For more details, see the [Backup & Scheduling](#-backup--scheduling) section.
 
 #### **Template System**
 - **Engine**: Jinja2 template rendering
@@ -405,7 +543,13 @@ cp kb.db kb.db.backup
 - **Cache Limits**: Configurable memory usage limits
 - **Background Tasks**: Non-blocking API requests
 
-## 📈 Roadmap
+## 🗺️ Roadmap
+
+### Completed Features
+- [x] **Backup Automation** (v1.2.0) - Scheduled backups to GitHub with manual trigger
+- [x] **Role-Based Access Control** - Fine-grained permissions for KB operations
+- [x] **GitHub OAuth SSO** - Single sign-on integration
+- [x] **Markdown Support** - Full CommonMark rendering with syntax highlighting
 
 ### Planned Features
 - [ ] **Import/Export Tools**: Bulk import from various formats (JSON, CSV, Markdown)
@@ -413,8 +557,8 @@ cp kb.db kb.db.backup
 - [ ] **Collaboration Features**: Share articles and groups with team members
 - [ ] **Plugin System**: Extensible architecture for custom integrations
 - [ ] **Mobile App**: Native mobile application for iOS and Android
-- [ ] **Backup Automation**: Scheduled backups to cloud storage
 - [ ] **Advanced Analytics**: Usage statistics and knowledge base insights
+- [ ] **Full-Text Search**: Enhanced search capabilities with ranking
 
 ### Integration Possibilities
 - **Slack Integration**: Search knowledge base from Slack
