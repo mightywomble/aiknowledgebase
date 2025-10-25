@@ -17,20 +17,16 @@
     </div>
 
     <div>
-        <label for="backup_cron" class="block text-sm font-medium text-gray-300">
-            Backup Time (Cron Format)
+        <label for="backup_interval" class="block text-sm font-medium text-gray-300">
+            Backup Frequency
         </label>
-        <input type="text" name="backup_cron" id="backup_cron" 
-               value="{{ scheduled_job.cron }}"
-               class="mt-1 block w-full rounded-md bg-transparent border-[var(--glass-border)] text-white shadow-sm"
-               placeholder="0 2 * * * (2 AM daily)">
-        <p class="text-xs text-gray-500 mt-2">
-            Format: minute hour day month weekday<br>
-            Examples:<br>
-            • <code class="text-yellow-400">0 2 * * *</code> - Daily at 2 AM<br>
-            • <code class="text-yellow-400">0 0 * * 0</code> - Weekly on Sunday at midnight<br>
-            • <code class="text-yellow-400">0 */6 * * *</code> - Every 6 hours
-        </p>
+        <select name="backup_interval" id="backup_interval" 
+                class="mt-1 block w-full rounded-md bg-gray-700 border-[var(--glass-border)] text-white shadow-sm px-3 py-2">
+            <option value="30" {% if scheduled_job.interval == 30 %}selected{% endif %}>Every 30 minutes</option>
+            <option value="60" {% if scheduled_job.interval == 60 %}selected{% endif %}>Every 1 hour</option>
+            <option value="1440" {% if scheduled_job.interval == 1440 %}selected{% endif %}>Every 1 day</option>
+            <option value="10080" {% if scheduled_job.interval == 10080 %}selected{% endif %}>Every 1 week</option>
+        </select>
     </div>
 
     <div class="bg-black/20 rounded-lg p-4 border border-[var(--glass-border)]">
@@ -62,8 +58,6 @@ function toggleBackupButton() {
     button.classList.toggle('bg-red-600', !backupEnabled);
     button.querySelector('span').classList.toggle('translate-x-7', backupEnabled);
     button.querySelector('span').classList.toggle('translate-x-1', !backupEnabled);
-    
-    console.log('Backup enabled toggled to:', backupEnabled);
 }
 
 document.getElementById('scheduleForm').addEventListener('submit', async (e) => {
@@ -71,20 +65,13 @@ document.getElementById('scheduleForm').addEventListener('submit', async (e) => 
     
     const formData = new FormData();
     formData.append('backup_enabled', backupEnabled ? 'on' : '');
-    formData.append('backup_cron', document.getElementById('backup_cron').value);
-    
-    console.log('Submitting form with:', {
-        backup_enabled: backupEnabled ? 'on' : '',
-        backup_cron: document.getElementById('backup_cron').value
-    });
+    formData.append('backup_interval', document.getElementById('backup_interval').value);
     
     try {
         const response = await fetch('{{ url_for("save_schedule") }}', {
             method: 'POST',
             body: formData
         });
-        
-        console.log('Response status:', response.status);
         
         if (response.ok) {
             document.getElementById('statusMessage').innerHTML = '<span class="text-green-500">✓ Schedule saved successfully!</span>';

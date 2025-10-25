@@ -40,7 +40,7 @@ def load_config():
         "GEMINI_API_KEY": "", "GOOGLE_API_KEY": "", "SEARCH_ENGINE_ID": "", "OPENAI_API_KEY": "",
         "GITHUB_CLIENT_ID": "", "GITHUB_CLIENT_SECRET": "", "DEBUG_MODE": False,
         "GITHUB_BACKUP_REPO": "", "GITHUB_TOKEN": "", "GEMINI_MODEL": "gemini-2.5-pro",
-        "BACKUP_ENABLED": True, "BACKUP_CRON": "*/30 * * * *", "LAST_BACKUP_TIME": None
+        "BACKUP_ENABLED": True, "BACKUP_INTERVAL": 30, "LAST_BACKUP_TIME": None
     }
 
 def save_config(new_config):
@@ -184,8 +184,8 @@ init_db()
 # Re-enable scheduler job if it was enabled
 if config.get('BACKUP_ENABLED'):
     try:
-        cron = config.get('BACKUP_CRON', '0 2 * * *')
-        scheduler.add_job(perform_scheduled_backup, 'cron', id='github_backup_job', cron_string=cron)
+        interval_minutes = config.get('BACKUP_INTERVAL', 30)
+        scheduler.add_job(perform_scheduled_backup, 'interval', minutes=interval_minutes, id='github_backup_job')
     except:
         pass  # Job might already exist
 
@@ -412,16 +412,10 @@ def settings_page(page):
         template_data['github_redirect_uri'] = url_for('github_callback', _external=True)
     elif page == 'schedule':
         # Check if backups are enabled (stored in config)
-        print(f"\n=== DEBUG settings_page schedule ===")
-        print(f"current_config: {current_config}")
-        print(f"BACKUP_ENABLED: {current_config.get('BACKUP_ENABLED', False)}")
-        print(f"BACKUP_CRON: {current_config.get('BACKUP_CRON', '0 2 * * *')}")
         template_data['scheduled_job'] = {
-            'enabled': current_config.get('BACKUP_ENABLED', False),
-            'cron': current_config.get('BACKUP_CRON', '0 2 * * *')
+            'enabled': current_config.get('BACKUP_ENABLED', True),
+            'interval': current_config.get('BACKUP_INTERVAL', 30)
         }
-        print(f"template_data scheduled_job: {template_data['scheduled_job']}")
-        print(f"=== END DEBUG ===")
     elif page == 'groups':
         template_data['groups'] = Group.query.order_by(Group.name).all()
     elif page == 'roles':
@@ -451,14 +445,7 @@ def save_settings():
 def save_schedule():
     global config
     enabled = bool(request.form.get('backup_enabled'))
-    cron = request.form.get('backup_cron', '0 2 * * *')
-    
-    print(f"\n=== DEBUG save_schedule ===")
-    print(f"Form data: {dict(request.form)}")
-    print(f"backup_enabled raw: '{request.form.get('backup_enabled')}'")
-    print(f"enabled (bool): {enabled}")
-    print(f"cron: {cron}")
-    print(f"Config BEFORE save: {config}")
+    interval = int(request.form.get('backup_interval', 30))
     
     # Remove existing job
     if scheduler.get_job('github_backup_job'):
@@ -467,38 +454,22 @@ def save_schedule():
     # Add new job if enabled
     if enabled:
         try:
-            scheduler.add_job(perform_scheduled_backup, 'cron', id='github_backup_job', args=[], cron_string=cron)
+            scheduler.add_job(perform_scheduled_backup, 'interval', minutes=interval, id='github_backup_job')
             config['BACKUP_ENABLED'] = True
-            config['BACKUP_CRON'] = cron
-            print(f"Config BEFORE save_config: {config}")
+            config['BACKUP_INTERVAL'] = interval
             save_config(config)
-            print(f"Config AFTER save_config: {config}")
-            # Verify file was written
-            with open(CONFIG_FILE, 'r') as f:
-                saved_config = json.load(f)
-            print(f"Config read back from file: {saved_config}")
             flash('Backup schedule enabled!', 'success')
         except Exception as e:
-            print(f"Error: {e}")
             flash(f'Error scheduling backup: {e}', 'danger')
             return redirect(request.referrer or url_for('settings_page', page='schedule'))
     else:
         config['BACKUP_ENABLED'] = False
-        config['BACKUP_CRON'] = cron
-        print(f"Config BEFORE save_config: {config}")
+        config['BACKUP_INTERVAL'] = interval
         save_config(config)
-        print(f"Config AFTER save_config: {config}")
-        # Verify file was written
-        with open(CONFIG_FILE, 'r') as f:
-            saved_config = json.load(f)
-        print(f"Config read back from file: {saved_config}")
         flash('Backup schedule disabled.', 'success')
     
-    print(f"=== END DEBUG ===")
-    # IMPORTANT: Reload config from disk so the global config reflects the changes
-    # Otherwise the page reload will show stale data
+    # Reload config from disk so the global config reflects the changes
     config = load_config()
-    print(f"Global config reloaded: {config}")
     return redirect(request.referrer or url_for('settings_page', page='schedule'))
 
 @app.route('/user_management')
