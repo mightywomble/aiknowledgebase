@@ -382,11 +382,23 @@ def add_user():
 @permission_required('is_admin')
 def delete_user(id):
     user = User.query.get_or_404(id)
-    if user.username == 'admin':
-        flash("Cannot delete the default admin user.")
-        return redirect(url_for('user_management'))
     db.session.delete(user)
     db.session.commit()
+    flash(f"User {user.username} deleted.")
+    return redirect(url_for('user_management'))
+
+@app.route('/user/change_password/<int:id>', methods=['POST'])
+@login_required
+@permission_required('is_admin')
+def change_password(id):
+    user = User.query.get_or_404(id)
+    new_password = request.form.get('new_password')
+    if not new_password:
+        flash("Password cannot be empty.")
+        return redirect(url_for('user_management'))
+    user.password_hash = generate_password_hash(new_password, method='pbkdf2:sha256')
+    db.session.commit()
+    flash(f"Password updated for {user.username}.")
     return redirect(url_for('user_management'))
 
 @app.route('/user/assign_role/<int:user_id>/<int:role_id>', methods=['POST'])

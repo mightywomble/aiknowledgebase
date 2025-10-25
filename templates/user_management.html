@@ -32,11 +32,12 @@
                     <p class="font-semibold text-white">{{ user.name or user.username }}</p>
                     <p class="text-sm text-gray-400">{{ user.email or 'Local Account' }}</p>
                 </div>
-                {% if user.username != 'admin' %}
-                <form action="{{ url_for('delete_user', id=user.id) }}" method="POST" onsubmit="return confirm('Are you sure?');">
-                    <button type="submit" class="text-red-500 hover:text-red-400 text-sm">Delete</button>
-                </form>
-                {% endif %}
+                <div class="flex gap-2">
+                    <button class="text-blue-500 hover:text-blue-400 text-sm" onclick="openChangePasswordModal({{ user.id }}, '{{ user.username }}')" title="Change Password">Change Pass</button>
+                    <form action="{{ url_for('delete_user', id=user.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete {{ user.username }}?');" style="display:inline;">
+                        <button type="submit" class="text-red-500 hover:text-red-400 text-sm">Delete</button>
+                    </form>
+                </div>
             </div>
             <div class="mt-4 border-t border-[var(--glass-border)] pt-4">
                 <p class="text-sm font-medium text-gray-300 mb-2">Roles</p>
@@ -58,4 +59,36 @@
         {% endfor %}
     </div>
 </div>
+
+<!-- Change Password Modal -->
+<div id="change-password-modal" class="fixed inset-0 flex items-center justify-center p-4 hidden z-50" onclick="if(event.target === this) closeChangePasswordModal()">
+    <div class="bg-[#16213e] border border-[var(--glass-border)] rounded-xl shadow-2xl w-full max-w-md p-6">
+        <h3 class="text-lg font-semibold text-white mb-4">Change Password</h3>
+        <form id="change-password-form" method="POST" class="space-y-4">
+            <input type="hidden" id="change-password-user-id" value="">
+            <div>
+                <label class="block text-sm font-medium text-gray-300">New Password</label>
+                <input type="password" name="new_password" required class="mt-1 w-full rounded-md bg-transparent border-[var(--glass-border)] text-white placeholder-gray-400 shadow-sm">
+            </div>
+            <div class="flex gap-2 justify-end">
+                <button type="button" class="rounded-md bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/20" onclick="closeChangePasswordModal()">Cancel</button>
+                <button type="submit" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500">Update Password</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openChangePasswordModal(userId, username) {
+    document.getElementById('change-password-user-id').value = userId;
+    const form = document.getElementById('change-password-form');
+    form.action = '/user/change_password/' + userId;
+    document.getElementById('change-password-modal').classList.remove('hidden');
+}
+
+function closeChangePasswordModal() {
+    document.getElementById('change-password-modal').classList.add('hidden');
+}
+</script>
+
 {% endblock %}
