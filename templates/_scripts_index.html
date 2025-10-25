@@ -21,7 +21,21 @@
     
     // --- Delegated Event Listeners on Body ---
     document.body.addEventListener('click', function(e) {
-        if (e.target.id === 'share-article-btn') handleShareArticle();
+        if (e.target.id === 'share-article-btn' || e.target.closest('#share-article-btn')) {
+            const articleId = $('#modal-title').textContent;
+            const article = document.querySelector('[data-article-id]');
+            // Get article ID from modal context - fetch it from the currently displayed article
+            const modalTitle = $('#modal-title');
+            const articleLink = document.querySelector(`.article-link[data-id]`);
+            // Actually, we need to store the article ID when viewing. Let me use a better approach:
+            const shareBtn = e.target.closest('#share-article-btn');
+            if (shareBtn) {
+                // Get the article ID from stored state when article modal was opened
+                if (window.currentArticleId) {
+                    openShareModal(window.currentArticleId);
+                }
+            }
+        }
         
         if (e.target.closest('#start-synthesis-btn')) {
             e.preventDefault();
@@ -115,6 +129,7 @@
 
     // MODIFIED: This function now correctly builds the "View Article" modal with the desired glass plane design.
     async function handleArticleClick(id) {
+        window.currentArticleId = id; // Store article ID for sharing
         const response = await fetch(`/get/article/${id}`);
         const article = await response.json();
         article.is_private = article.is_private || false; // Ensure is_private exists
