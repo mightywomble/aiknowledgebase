@@ -39,7 +39,8 @@ def load_config():
     return {
         "GEMINI_API_KEY": "", "GOOGLE_API_KEY": "", "SEARCH_ENGINE_ID": "", "OPENAI_API_KEY": "",
         "GITHUB_CLIENT_ID": "", "GITHUB_CLIENT_SECRET": "", "DEBUG_MODE": False,
-        "GITHUB_BACKUP_REPO": "", "GITHUB_TOKEN": "", "GEMINI_MODEL": "gemini-2.5-pro"
+        "GITHUB_BACKUP_REPO": "", "GITHUB_TOKEN": "", "GEMINI_MODEL": "gemini-2.5-pro",
+        "BACKUP_ENABLED": True, "BACKUP_CRON": "*/30 * * * *", "LAST_BACKUP_TIME": None
     }
 
 def save_config(new_config):
@@ -54,6 +55,8 @@ atexit.register(lambda: scheduler.shutdown())
 
 def perform_scheduled_backup():
     """Execute scheduled GitHub backup"""
+    global config
+    import datetime
     try:
         repo_name = config.get('GITHUB_BACKUP_REPO')
         token = config.get('GITHUB_TOKEN')
@@ -93,6 +96,9 @@ def perform_scheduled_backup():
             if sha:
                 data['sha'] = sha
             requests.put(url, headers=headers, json=data)
+        # Update last backup time on success
+        config['LAST_BACKUP_TIME'] = datetime.datetime.now().isoformat()
+        save_config(config)
     except Exception as e:
         print(f"Scheduled backup error: {e}")
 
@@ -319,6 +325,10 @@ def github_callback():
 @app.route('/')
 @login_required
 def index():
+    # Reload config to get latest backup time
+    current_config = load_config()
+    last_backup_time = current_config.get('LAST_BACKUP_TIME')
+    
     search_term = request.args.get('search', '')
     sort_by = request.args.get('sort', 'group')
     filter_group_id = request.args.get('group', type=int)
@@ -367,7 +377,8 @@ def index():
     groups_for_js = [{'id': g.id, 'name': g.name, 'parent_id': g.parent_id} for g in all_groups]
 
     return render_template('index.html', articles=articles, all_tags=all_tags, all_groups=all_groups, groups_for_js=groups_for_js, 
-                             search_term=search_term, sort_by=sort_by, filter_group_id=filter_group_id, filter_tag=filter_tag, filter_visibility=filter_visibility)
+                             search_term=search_term, sort_by=sort_by, filter_group_id=filter_group_id, filter_tag=filter_tag, filter_visibility=filter_visibility,
+                             last_backup_time=last_backup_time)
 
 # --- MODULAR SETTINGS ROUTES ---
 

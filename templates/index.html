@@ -155,11 +155,22 @@
                 <div class="header-actions">
                     <span class="user-info">Logged in as <strong>{{ current_user.name or current_user.username }}</strong></span>
                     {% if current_user.has_permission('is_admin') %}
-                    <a href="{{ url_for('backup_restore_page') }}" class="header-btn" title="Backup/Restore">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
-                        </svg>
-                    </a>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <a href="{{ url_for('backup_restore_page') }}" class="header-btn" title="Backup/Restore">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
+                            </svg>
+                        </a>
+                        {% if last_backup_time %}
+                        <span class="backup-timestamp" title="Last backup at {{ last_backup_time }}">
+                            <svg style="width: 16px; height: 16px; display: inline-block; margin-right: 4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            <span style="font-size: 0.75rem; color: #9CA3AF;">{{ last_backup_time.split('T')[1].split('.')[0] if last_backup_time else 'Never' }}</span>
+                        </span>
+                        {% endif %}
+                    </div>
                     <a href="{{ url_for('user_management') }}" class="header-btn" title="User Management">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.071M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-4.663M15 19.128L18 18.5" />
