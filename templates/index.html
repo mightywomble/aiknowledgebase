@@ -242,6 +242,16 @@
     {% include '_modals.html' %}
     {% include '_scripts_index.html' %}
     
+    <!-- Auto-open article from URL parameter -->
+    {% if article_id %}
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Auto-open article if article_id is provided in URL
+        handleArticleClick({{ article_id }});
+    });
+    </script>
+    {% endif %}
+    
     <!-- Manual backup functionality -->
     {% if current_user.has_permission('is_admin') and backup_enabled %}
     <script>

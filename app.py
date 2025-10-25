@@ -342,6 +342,9 @@ def index():
         except:
             pass
     
+    # Get article ID from URL parameter if present
+    article_id = request.args.get('article', type=int)
+    
     search_term = request.args.get('search', '')
     sort_by = request.args.get('sort', 'group')
     filter_group_id = request.args.get('group', type=int)
@@ -391,7 +394,7 @@ def index():
 
     return render_template('index.html', articles=articles, all_tags=all_tags, all_groups=all_groups, groups_for_js=groups_for_js, 
                              search_term=search_term, sort_by=sort_by, filter_group_id=filter_group_id, filter_tag=filter_tag, filter_visibility=filter_visibility,
-                             last_backup_time=last_backup_time, next_backup_time=next_backup_time, backup_enabled=backup_enabled)
+                             last_backup_time=last_backup_time, next_backup_time=next_backup_time, backup_enabled=backup_enabled, article_id=article_id)
 
 # --- MODULAR SETTINGS ROUTES ---
 

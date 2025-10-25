@@ -34,6 +34,13 @@
     
     // --- Delegated Event Listeners on Body ---
     document.body.addEventListener('click', function(e) {
+        if (e.target.id === 'copy-article-link-btn' || e.target.closest('#copy-article-link-btn')) {
+            e.preventDefault();
+            if (window.currentArticleId) {
+                copyArticleLink(window.currentArticleId);
+            }
+        }
+        
         if (e.target.id === 'edit-article-from-modal' || e.target.closest('#edit-article-from-modal')) {
             e.preventDefault();
             closeModal('article-modal');
@@ -674,5 +681,29 @@
             btn.disabled = false;
             btn.textContent = 'Create Article';
         }
+    }
+
+    // --- Copy Article Link ---
+    function copyArticleLink(articleId) {
+        const articleLink = `${window.location.origin}/?article=${articleId}`;
+        navigator.clipboard.writeText(articleLink).then(() => {
+            const copyBtn = $('#copy-article-link-btn');
+            const originalTitle = copyBtn.getAttribute('title');
+            const originalHTML = copyBtn.innerHTML;
+            
+            // Show feedback
+            copyBtn.setAttribute('title', 'Copied to clipboard!');
+            copyBtn.innerHTML = '<svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>';
+            copyBtn.classList.add('text-green-400');
+            
+            // Reset after 2 seconds
+            setTimeout(() => {
+                copyBtn.setAttribute('title', originalTitle);
+                copyBtn.innerHTML = originalHTML;
+                copyBtn.classList.remove('text-green-400');
+            }, 2000);
+        }).catch(err => {
+            alert('Failed to copy link: ' + err);
+        });
     }
 </script>
