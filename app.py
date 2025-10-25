@@ -37,7 +37,7 @@ def load_config():
     return {
         "GEMINI_API_KEY": "", "GOOGLE_API_KEY": "", "SEARCH_ENGINE_ID": "", "OPENAI_API_KEY": "",
         "GITHUB_CLIENT_ID": "", "GITHUB_CLIENT_SECRET": "", "DEBUG_MODE": False,
-        "GITHUB_BACKUP_REPO": "", "GITHUB_TOKEN": "", "GEMINI_MODEL": "gemini-1.5-flash"
+        "GITHUB_BACKUP_REPO": "", "GITHUB_TOKEN": "", "GEMINI_MODEL": "gemini-2.5-pro"
     }
 
 def save_config(new_config):
@@ -145,7 +145,7 @@ def permission_required(permission):
 def query_gemini(prompt):
     api_key = config.get('GEMINI_API_KEY')
     # MODIFIED: Read the selected model from the config file
-    model_name = config.get('GEMINI_MODEL', 'gemini-1.5-flash') 
+    model_name = config.get('GEMINI_MODEL', 'gemini-2.5-pro') 
     if not api_key: return "Error: Gemini API key not configured."
     try:
         import google.generativeai as genai
