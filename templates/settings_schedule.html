@@ -4,15 +4,13 @@
 <h2 class="text-2xl font-bold text-white">Scheduled Backups</h2>
 <p class="mt-1 text-sm text-gray-400">Schedule automatic GitHub backups of articles, settings, and API keys.</p>
 
-<form action="{{ url_for('save_schedule') }}" method="POST" class="mt-8 max-w-md space-y-6">
-<div class="flex items-center gap-3">
+<form id="scheduleForm" class="mt-8 max-w-md space-y-6">
+    <div class="flex items-center gap-3">
         <button type="button" id="toggle_backup" 
                 class="relative inline-flex h-8 w-14 items-center rounded-full transition-colors {% if scheduled_job.enabled %}bg-green-600{% else %}bg-red-600{% endif %}"
                 onclick="toggleBackupButton()">
             <span class="inline-block h-6 w-6 transform rounded-full bg-white transition-transform {% if scheduled_job.enabled %}translate-x-7{% else %}translate-x-1{% endif %}"></span>
         </button>
-        <input type="hidden" name="backup_enabled" id="backup_enabled_hidden" 
-               value="{% if scheduled_job.enabled %}on{% endif %}">
         <label for="toggle_backup" class="block text-sm font-medium text-gray-300">
             Enable Scheduled Backups
         </label>
@@ -49,21 +47,57 @@
         <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
             Save Schedule
         </button>
+        <div id="statusMessage" class="mt-2 text-sm"></div>
     </div>
 </form>
 
 <script>
+let backupEnabled = {{ 'true' if scheduled_job.enabled else 'false' }};
+
 function toggleBackupButton() {
     const button = document.getElementById('toggle_backup');
-    const hidden = document.getElementById('backup_enabled_hidden');
-    const isEnabled = hidden.value === 'on';
+    backupEnabled = !backupEnabled;
     
-    button.classList.toggle('bg-green-600', !isEnabled);
-    button.classList.toggle('bg-red-600', isEnabled);
-    button.querySelector('span').classList.toggle('translate-x-7', !isEnabled);
-    button.querySelector('span').classList.toggle('translate-x-1', isEnabled);
+    button.classList.toggle('bg-green-600', backupEnabled);
+    button.classList.toggle('bg-red-600', !backupEnabled);
+    button.querySelector('span').classList.toggle('translate-x-7', backupEnabled);
+    button.querySelector('span').classList.toggle('translate-x-1', !backupEnabled);
     
-    hidden.value = isEnabled ? '' : 'on';
+    console.log('Backup enabled toggled to:', backupEnabled);
 }
+
+document.getElementById('scheduleForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData();
+    formData.append('backup_enabled', backupEnabled ? 'on' : '');
+    formData.append('backup_cron', document.getElementById('backup_cron').value);
+    
+    console.log('Submitting form with:', {
+        backup_enabled: backupEnabled ? 'on' : '',
+        backup_cron: document.getElementById('backup_cron').value
+    });
+    
+    try {
+        const response = await fetch('{{ url_for("save_schedule") }}', {
+            method: 'POST',
+            body: formData
+        });
+        
+        console.log('Response status:', response.status);
+        
+        if (response.ok) {
+            document.getElementById('statusMessage').innerHTML = '<span class="text-green-500">✓ Schedule saved successfully!</span>';
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        } else {
+            document.getElementById('statusMessage').innerHTML = '<span class="text-red-500">✗ Error saving schedule</span>';
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('statusMessage').innerHTML = '<span class="text-red-500">✗ Error: ' + error.message + '</span>';
+    }
+});
 </script>
 {% endblock settings_content %}

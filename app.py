@@ -432,6 +432,14 @@ def save_schedule():
     enabled = bool(request.form.get('backup_enabled'))
     cron = request.form.get('backup_cron', '0 2 * * *')
     
+    print(f"\n=== DEBUG save_schedule ===")
+    print(f"Form data: {dict(request.form)}")
+    print(f"backup_enabled raw: '{request.form.get('backup_enabled')}'")
+    print(f"enabled (bool): {enabled}")
+    print(f"cron: {cron}")
+    print(f"Current config: {config}")
+    print(f"=== END DEBUG ===")
+    
     # Remove existing job
     if scheduler.get_job('github_backup_job'):
         scheduler.remove_job('github_backup_job')
