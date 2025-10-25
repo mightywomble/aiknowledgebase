@@ -13,6 +13,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.middleware.proxy_fix import ProxyFix
 from requests_oauthlib import OAuth2Session
 import requests
+from apscheduler.schedulers.background import BackgroundScheduler
+import atexit
 
 # --- APP SETUP & CONFIGURATION ---
 
@@ -44,6 +46,55 @@ def save_config(new_config):
     with open(CONFIG_FILE, 'w') as f: json.dump(new_config, f, indent=4)
 
 config = load_config()
+
+# --- SCHEDULER SETUP ---
+scheduler = BackgroundScheduler()
+scheduler.start()
+atexit.register(lambda: scheduler.shutdown())
+
+def perform_scheduled_backup():
+    """Execute scheduled GitHub backup"""
+    try:
+        repo_name = config.get('GITHUB_BACKUP_REPO')
+        token = config.get('GITHUB_TOKEN')
+        if not all([repo_name, token]):
+            return
+        
+        headers = {"Authorization": f"token {token}"}
+        articles = Article.query.all()
+        articles_data = [{'id': a.id, 'title': a.title, 'content': a.content, 'notes': a.notes, 
+                          'references': a.references, 'tags': a.tags, 'group_id': a.group_id, 'is_private': a.is_private} for a in articles]
+        groups = Group.query.all()
+        groups_data = [{'id': g.id, 'name': g.name, 'color': g.color, 'parent_id': g.parent_id} for g in groups]
+        api_keys_data = {
+            'GEMINI_API_KEY': config.get('GEMINI_API_KEY', ''),
+            'GEMINI_MODEL': config.get('GEMINI_MODEL', 'gemini-2.5-pro'),
+            'GOOGLE_API_KEY': config.get('GOOGLE_API_KEY', ''),
+            'SEARCH_ENGINE_ID': config.get('SEARCH_ENGINE_ID', ''),
+            'OPENAI_API_KEY': config.get('OPENAI_API_KEY', ''),
+            'GITHUB_CLIENT_ID': config.get('GITHUB_CLIENT_ID', ''),
+            'GITHUB_CLIENT_SECRET': config.get('GITHUB_CLIENT_SECRET', ''),
+            'GITHUB_BACKUP_REPO': config.get('GITHUB_BACKUP_REPO', ''),
+        }
+        files = {
+            "articles.json": json.dumps(articles_data, indent=4),
+            "groups.json": json.dumps(groups_data, indent=4),
+            "api_keys_backup.json": json.dumps(api_keys_data, indent=4)
+        }
+        for filename, content in files.items():
+            url = f"https://api.github.com/repos/{repo_name}/contents/{filename}"
+            get_res = requests.get(url, headers=headers)
+            sha = None
+            if get_res.status_code == 200:
+                sha = get_res.json().get('sha')
+            import base64
+            content_b64 = base64.b64encode(content.encode('utf-8')).decode('utf-8')
+            data = {"message": f"Scheduled backup {filename} - {json.dumps({'timestamp': str(json.dumps(json.dumps(json.dumps('scheduled'))))})} ", "content": content_b64, "branch": "dev"}
+            if sha:
+                data['sha'] = sha
+            requests.put(url, headers=headers, json=data)
+    except Exception as e:
+        print(f"Scheduled backup error: {e}")
 
 # --- DATABASE MODELS ---
 
@@ -326,6 +377,7 @@ def settings_page(page):
         'api': 'settings_api.html',
         'sso': 'settings_sso.html',
         'backup': 'settings_backup.html',
+        'schedule': 'settings_schedule.html',
         'groups': 'settings_groups.html',
         'roles': 'settings_roles.html'
     }
@@ -335,6 +387,13 @@ def settings_page(page):
     template_data = {'current_config': config, 'active_page': page}
     if page == 'sso':
         template_data['github_redirect_uri'] = url_for('github_callback', _external=True)
+    elif page == 'schedule':
+        # Get current scheduled job if exists
+        job = scheduler.get_job('github_backup_job')
+        template_data['scheduled_job'] = {
+            'enabled': job is not None,
+            'cron': config.get('BACKUP_CRON', '0 2 * * *')  # Default: 2 AM daily
+        } if job else {'enabled': False, 'cron': config.get('BACKUP_CRON', '0 2 * * *')}
     elif page == 'groups':
         template_data['groups'] = Group.query.order_by(Group.name).all()
     elif page == 'roles':
@@ -357,6 +416,35 @@ def save_settings():
     config = load_config()
     flash('Settings saved successfully!', 'success')
     return redirect(request.referrer or url_for('settings_redirect'))
+
+@app.route('/settings/schedule', methods=['POST'])
+@login_required
+@permission_required('is_admin')
+def save_schedule():
+    global config
+    enabled = request.form.get('backup_enabled') == 'on'
+    cron = request.form.get('backup_cron', '0 2 * * *')
+    
+    # Remove existing job
+    if scheduler.get_job('github_backup_job'):
+        scheduler.remove_job('github_backup_job')
+    
+    # Add new job if enabled
+    if enabled:
+        try:
+            scheduler.add_job(perform_scheduled_backup, 'cron', id='github_backup_job', args=[], 
+                            hour=int(cron.split()[1]), minute=int(cron.split()[0]))
+            flash('Backup schedule enabled!', 'success')
+        except Exception as e:
+            flash(f'Error scheduling backup: {e}', 'danger')
+            return redirect(request.referrer or url_for('settings_page', page='schedule'))
+    else:
+        flash('Backup schedule disabled.', 'success')
+    
+    # Save cron to config
+    config['BACKUP_CRON'] = cron
+    save_config(config)
+    return redirect(request.referrer or url_for('settings_page', page='schedule'))
 
 @app.route('/user_management')
 @login_required

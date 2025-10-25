@@ -1,0 +1,50 @@
+{% extends "settings_layout.html" %}
+{% block title %}Backup Schedule Settings{% endblock %}
+{% block settings_content %}
+<h2 class="text-2xl font-bold text-white">Scheduled Backups</h2>
+<p class="mt-1 text-sm text-gray-400">Schedule automatic GitHub backups of articles, settings, and API keys.</p>
+
+<form action="{{ url_for('save_schedule') }}" method="POST" class="mt-8 max-w-md space-y-6">
+    <div class="flex items-center">
+        <input type="checkbox" name="backup_enabled" id="backup_enabled" 
+               class="h-4 w-4 rounded border-gray-500 text-indigo-600 focus:ring-indigo-500"
+               {% if scheduled_job.enabled %}checked{% endif %}>
+        <label for="backup_enabled" class="ml-3 block text-sm font-medium text-gray-300">
+            Enable Scheduled Backups
+        </label>
+    </div>
+
+    <div>
+        <label for="backup_cron" class="block text-sm font-medium text-gray-300">
+            Backup Time (Cron Format)
+        </label>
+        <input type="text" name="backup_cron" id="backup_cron" 
+               value="{{ scheduled_job.cron }}"
+               class="mt-1 block w-full rounded-md bg-transparent border-[var(--glass-border)] text-white shadow-sm"
+               placeholder="0 2 * * * (2 AM daily)">
+        <p class="text-xs text-gray-500 mt-2">
+            Format: minute hour day month weekday<br>
+            Examples:<br>
+            • <code class="text-yellow-400">0 2 * * *</code> - Daily at 2 AM<br>
+            • <code class="text-yellow-400">0 0 * * 0</code> - Weekly on Sunday at midnight<br>
+            • <code class="text-yellow-400">0 */6 * * *</code> - Every 6 hours
+        </p>
+    </div>
+
+    <div class="bg-black/20 rounded-lg p-4 border border-[var(--glass-border)]">
+        <h4 class="text-sm font-medium text-gray-300 mb-2">What Gets Backed Up:</h4>
+        <ul class="text-sm text-gray-400 space-y-1">
+            <li>✓ All articles and groups</li>
+            <li>✓ Article privacy settings</li>
+            <li>✓ Application configuration</li>
+            <li>✓ All API keys (encrypted locally)</li>
+        </ul>
+    </div>
+
+    <div class="border-t border-[var(--glass-border)] pt-6">
+        <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
+            Save Schedule
+        </button>
+    </div>
+</form>
+{% endblock settings_content %}
