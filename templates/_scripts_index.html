@@ -7,17 +7,30 @@
     // --- Event Listeners ---
     document.addEventListener('DOMContentLoaded', () => {
         restoreGroupStates();
+        
+        // Safe element listeners
+        const askForm = $('#ask-form');
+        if (askForm) askForm.addEventListener('submit', handleAskSubmit);
+        
+        const kbNav = $('#kb-nav');
+        if (kbNav) kbNav.addEventListener('click', handleSidebarClick);
+        
+        const selectAllCheckbox = $('#select-all-checkbox');
+        if (selectAllCheckbox) selectAllCheckbox.addEventListener('change', handleSelectAll);
+        
+        const bulkDeleteBtn = $('#bulk-delete-btn');
+        if (bulkDeleteBtn) bulkDeleteBtn.addEventListener('click', () => handleBulkAction('delete'));
+        
+        const bulkUpdateBtn = $('#bulk-update-btn');
+        if (bulkUpdateBtn) bulkUpdateBtn.addEventListener('click', () => {
+            renderTagButtons('bulk-tags-container', 'bulk-tags');
+            populateBulkShareRoles();
+            openModal('bulk-update-modal');
+        });
+        
+        const confirmBulkUpdateBtn = $('#confirm-bulk-update-btn');
+        if (confirmBulkUpdateBtn) confirmBulkUpdateBtn.addEventListener('click', () => handleBulkAction('update'));
     });
-    $('#ask-form').addEventListener('submit', handleAskSubmit);
-    $('#kb-nav').addEventListener('click', handleSidebarClick);
-    $('#select-all-checkbox').addEventListener('change', handleSelectAll);
-    $('#bulk-delete-btn').addEventListener('click', () => handleBulkAction('delete'));
-    $('#bulk-update-btn').addEventListener('click', () => {
-        renderTagButtons('bulk-tags-container', 'bulk-tags');
-        populateBulkShareRoles();
-        openModal('bulk-update-modal');
-    });
-    $('#confirm-bulk-update-btn').addEventListener('click', () => handleBulkAction('update'));
     
     // --- Delegated Event Listeners on Body ---
     document.body.addEventListener('click', function(e) {
