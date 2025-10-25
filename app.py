@@ -175,6 +175,14 @@ def init_db():
 # Ensure DB exists when the module is imported (e.g., under waitress / gunicorn)
 init_db()
 
+# Re-enable scheduler job if it was enabled
+if config.get('BACKUP_ENABLED'):
+    try:
+        cron = config.get('BACKUP_CRON', '0 2 * * *')
+        scheduler.add_job(perform_scheduled_backup, 'cron', id='github_backup_job', cron_string=cron)
+    except:
+        pass  # Job might already exist
+
 # --- LOGIN & SESSION MANAGEMENT ---
 
 @login_manager.user_loader
@@ -388,12 +396,11 @@ def settings_page(page):
     if page == 'sso':
         template_data['github_redirect_uri'] = url_for('github_callback', _external=True)
     elif page == 'schedule':
-        # Get current scheduled job if exists
-        job = scheduler.get_job('github_backup_job')
+        # Check if backups are enabled (stored in config)
         template_data['scheduled_job'] = {
-            'enabled': job is not None,
-            'cron': config.get('BACKUP_CRON', '0 2 * * *')  # Default: 2 AM daily
-        } if job else {'enabled': False, 'cron': config.get('BACKUP_CRON', '0 2 * * *')}
+            'enabled': config.get('BACKUP_ENABLED', False),
+            'cron': config.get('BACKUP_CRON', '0 2 * * *')
+        }
     elif page == 'groups':
         template_data['groups'] = Group.query.order_by(Group.name).all()
     elif page == 'roles':
@@ -422,7 +429,7 @@ def save_settings():
 @permission_required('is_admin')
 def save_schedule():
     global config
-    enabled = request.form.get('backup_enabled')
+    enabled = bool(request.form.get('backup_enabled'))
     cron = request.form.get('backup_cron', '0 2 * * *')
     
     # Remove existing job
@@ -433,6 +440,7 @@ def save_schedule():
     if enabled:
         try:
             scheduler.add_job(perform_scheduled_backup, 'cron', id='github_backup_job', args=[], cron_string=cron)
+            config['BACKUP_ENABLED'] = True
             config['BACKUP_CRON'] = cron
             save_config(config)
             flash('Backup schedule enabled!', 'success')
@@ -440,6 +448,7 @@ def save_schedule():
             flash(f'Error scheduling backup: {e}', 'danger')
             return redirect(request.referrer or url_for('settings_page', page='schedule'))
     else:
+        config['BACKUP_ENABLED'] = False
         config['BACKUP_CRON'] = cron
         save_config(config)
         flash('Backup schedule disabled.', 'success')
